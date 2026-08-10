@@ -1,0 +1,450 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Generador de minutas y notas para la creación de documentos oficiales.">
+  <meta name="robots" content="index, file">
+  <title>CreatorMinut</title>
+  <link rel="stylesheet" href="dgn/global.css">
+  <link rel="icon" href="/icon.png" type="image/png">
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+  <!-- Header Superior -->
+  <header class="app-header no-print">
+    <div class="header-brand">
+      <h1 class="logo" style="display: flex; align-items: center; justify-content: center;"><span></span><img src="/icon.png" width="32" height="32" alt="Logo"></h1>
+    </div>
+
+    <nav class="main-nav mobile-nav">
+      <button class="nav-item active" data-tab="view-inicio">
+        <i data-lucide="file-text"></i>
+        <span>Inicio</span>
+      </button>
+      <button class="nav-item" data-tab="view-bloc">
+        <i data-lucide="edit-3"></i>
+        <span>Bloc</span>
+      </button>
+      <button class="nav-item" data-tab="view-formato">
+        <i data-lucide="layout"></i>
+        <span>Formato</span>
+      </button>
+      <button class="nav-item" data-tab="view-ajustes">
+        <i data-lucide="settings"></i>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+
+    <button id="hamburger-btn" class="icon-btn" aria-label="Menú desplegable">
+      <i data-lucide="menu"></i>
+    </button>
+  </header>
+
+  <aside id="side-menu" class="side-menu no-print">
+    <div class="side-menu-header">
+      <h3>Menú</h3>
+    </div>
+    <div class="sidebar-body">
+      <nav class="main-nav desktop-nav">
+        <button class="nav-item active" data-tab="view-inicio">
+          <i data-lucide="file-text"></i>
+          <span>Inicio</span>
+        </button>
+        <button class="nav-item" data-tab="view-bloc">
+          <i data-lucide="edit-3"></i>
+          <span>Bloc</span>
+        </button>
+        <button class="nav-item" data-tab="view-formato">
+          <i data-lucide="layout"></i>
+          <span>Formato</span>
+        </button>
+        <button class="nav-item" data-tab="view-ajustes">
+          <i data-lucide="settings"></i>
+          <span>Ajustes</span>
+        </button>
+      </nav>
+
+      <div class="menu-section-title">Sistema</div>
+
+      <ul class="side-menu-links">
+        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
+        <li><a href="#" id="btn-open-templates"><i data-lucide="layout"></i> Modelados</a></li>
+        <li><a href="#" id="btn-share-app-link"><i data-lucide="share-2"></i> Compartir App</a></li>
+        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
+        <li><a href="https://wa.me/584264214126" target="_blank"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
+      </ul>
+    </div>
+  </aside>
+  <div id="overlay" class="overlay no-print"></div>
+
+  <!-- Contenedor Principal -->
+  <main class="app-content">
+
+    <!-- VISTA 1: INICIO -->
+    <section id="view-inicio" class="tab-view active">
+      <div class="form-container">
+        <form id="minuta-form" class="card no-print">
+          <h2>Generar Minuta</h2>
+          
+          <!-- CAMPOS BASE FIJOS -->
+          <div class="form-group">
+            <label for="f-ciudad">Título Sup.</label>
+            <input type="text" id="f-ciudad" placeholder="Titulo Sup...">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-fecha">Fecha</label>
+              <input type="date" id="f-fecha">
+            </div>
+            <div class="form-group">
+              <label for="f-hora">Hora</label>
+              <input type="time" id="f-hora">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-lugar">Lugar</label>
+              <input type="text" id="f-lugar" placeholder="Área">
+            </div>
+            <div class="form-group">
+              <label for="f-informa">Informa</label>
+              <input type="text" id="f-informa" placeholder="Sujeto">
+            </div>
+          </div>
+
+          <!-- CONTENEDOR DE CAMPOS EXTRAS (REORDENABLES POR ARRASTRE/TOUCH) -->
+          <div id="dynamic-fields-container" class="movable-wrapper"></div>
+
+          <div class="form-group">
+            <label for="f-resumen">Resumen</label>
+            <textarea id="f-resumen" rows="3" placeholder="Descripción del acontecimiento..."></textarea>
+          </div>
+
+          <!-- CONTENEDOR DE NOTAS EXTRAS (REORDENABLES POR ARRASTRE/TOUCH) -->
+          <div id="dynamic-notes-container" class="movable-wrapper"></div>
+
+          <div class="form-group">
+            <label>Participantes</label>
+            <!-- CONTENEDOR DE INSTITUCIONES EXTRAS (REORDENABLES POR ARRASTRE/TOUCH) -->
+            <div id="dynamic-institutions-container" class="movable-wrapper"></div>
+          </div>
+
+          <!-- CAMPO BASE FIJO INFERIOR -->
+          <div class="form-group">
+            <label for="f-lema">Título Inf.</label>
+            <input type="text" id="f-lema" placeholder="Titulo Inf...">
+          </div>
+
+          <div class="action-buttons-row">
+            <button type="button" id="btn-add-field" class="btn btn-secondary">
+              <i data-lucide="plus-circle"></i> Extra
+            </button>
+            <button type="button" id="btn-add-note" class="btn btn-secondary">
+              <i data-lucide="sticky-note"></i> Nota
+            </button>
+            <button type="button" id="btn-add-institution" class="btn btn-secondary">
+              <i data-lucide="users"></i> Institución
+            </button>
+          </div>
+
+          <button type="button" id="btn-create" class="btn btn-primary full-width" style="margin-top: 15px;">
+            <i data-lucide="file-plus"></i> Crear
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VISTA 2: BLOC DE NOTAS -->
+    <section id="view-bloc" class="tab-view">
+      <div class="card bloc-container">
+        <h2>Bloc de Notas</h2>
+        
+        <div class="form-group">
+          <input type="text" id="note-title" placeholder="Título de la nota (opcional)...">
+        </div>
+        <div class="form-group">
+          <textarea id="note-body" rows="4" placeholder="Escriba su nota aquí..."></textarea>
+        </div>
+
+        <button type="button" id="btn-save-note" class="btn btn-primary full-width" style="margin-bottom: 20px;">
+          <i data-lucide="save"></i> Guardar Nota
+        </button>
+
+        <h3>Notas Guardadas</h3>
+        <div id="saved-notes-list" class="notes-list-container"></div>
+      </div>
+    </section>
+
+    <!-- VISTA 3: FORMATO -->
+    <section id="view-formato" class="tab-view">
+      <div class="form-container">
+        <form id="formato-form" class="card no-print">
+          <h2>Personalizado</h2>
+
+          <p style="margin-bottom: 12px; color: var(--secondary-color); font-size: 0.95rem;">
+            Personaliza tus minutas
+          </p>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="fmt-ciudad">Título Superior</label>
+              <input type="text" id="fmt-ciudad" placeholder="TITULO SUPERIOR">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fmt-field-type">Campo</label>
+              <select id="fmt-field-type">
+                <option value="">Seleccionar campo...</option>
+                <option value="titulo">TÍTULO</option>
+                <option value="fecha">FECHA</option>
+                <option value="hora">HORA</option>
+                <option value="informa">INFORMA</option>
+                <option value="resumen">RESUMEN</option>
+                <option value="nota">NOTA OBSERVACIÓN</option>
+                <option value="instituto">INSTITUTO</option>
+                <option value="personalizado">PERSONALIZADO</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div id="dynamic-formato-fields-container" class="movable-wrapper"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="fmt-lema">Título Inferior</label>
+              <input type="text" id="fmt-lema" placeholder="TITULO INFERIOR">
+            </div>
+          </div>
+
+          <div class="action-buttons-row">
+            <button type="button" id="btn-add-formato-field" class="btn btn-secondary">
+              <i data-lucide="plus-circle"></i> Agregar campo extra
+            </button>
+            <button type="button" id="btn-create-formato" class="btn btn-primary">
+              <i data-lucide="file-plus"></i> Generar Formato
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VISTA 4: AJUSTES -->
+    <section id="view-ajustes" class="tab-view">
+      <div class="card">
+        <h2>Perfil</h2>
+        
+        <div class="profile-container">
+          <div class="avatar-upload-wrapper">
+            <div id="avatar-placeholder" class="avatar-placeholder">
+              <i data-lucide="user"></i>
+            </div>
+            <img id="user-avatar-preview" src="" alt="Foto de perfil" class="avatar-img hidden">
+            <label for="user-avatar-input" class="btn-change-avatar" title="Cambiar Foto">
+              <i data-lucide="camera"></i>
+            </label>
+            <input type="file" id="user-avatar-input" accept="image/*" hidden>
+          </div>
+
+          <div class="form-group full-width">
+              <label>Perfil</label>
+              <div id="user-name-display" class="profile-name-display">
+                <h2>Datos</h2>
+              </div>
+              <div class="name-lock-row">
+                <button type="button" id="btn-toggle-name-lock" class="btn btn-secondary">Editar</button>
+                <span class="name-lock-helper">Perfil de datos y preferencias</span>
+              </div>
+            </div>
+        </div>
+
+        <h2>Preferencias</h2>
+        
+        <div class="setting-item">
+          <span>Seleccionar Tema</span>
+          <select id="theme-select">
+            <option value="theme-tecno">Tecno / Cyber</option>
+            <option value="theme-robotico">Robótico / Industrial</option>
+            <option value="theme-femenino">Femenino / Rosa Neón</option>
+            <option value="theme-matrix">Matrix / Terminal</option>
+            <option value="theme-vscode">VS Code / Dev</option>
+            <option value="theme-retro">Retro 90s</option>
+            <option value="theme-minimal">Minimalista Claro</option>
+            <option value="theme-whatsapp">WhatsApp</option>
+            <option value="theme-facebook">Facebook</option>
+            <option value="theme-xp">Windows XP</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <span>Tamaño del Texto</span>
+          <select id="font-size-select">
+            <option value="font-xxs">Pequeña</option>
+            <option value="font-xs">Casi pequeña</option>
+            <option value="font-sm" selected>Normal</option>
+            <option value="font-lg">Casi grande</option>
+            <option value="font-xl">Grande</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <span>Soporte Técnico</span>
+          <a href="https://wa.me/584264214126?text=Hola,%20tengo%20un%20inconveniente%20con%20la%20aplicación%20de%20Minutas." target="_blank" class="btn btn-whatsapp">
+            <i data-lucide="message-square"></i> Contactar por WhatsApp
+          </a>
+        </div>
+
+        <footer class="app-footer no-print">
+          <div class="footer-content">
+            <p>&copy; 2026 CreatorMinut. Todos los derechos reservados.</p>
+            <img src="favicon.ico" width="35" height="32" alt="logo" class="footer-logo">
+          </div>
+        </footer>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALES -->
+  <div id="modal-preview" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-modal" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <div id="minuta-output" class="minuta-display"></div>
+      <div class="modal-actions-center">
+        <button id="btn-copy" class="btn btn-primary"><i data-lucide="copy"></i> Copiar</button>
+        <button id="btn-download-minuta-image" class="btn btn-secondary"><i data-lucide="image"></i> Exportar</button>
+        <button id="btn-save-minuta-note" class="btn btn-secondary"><i data-lucide="save"></i> Guardar</button>
+        <button id="btn-share" class="btn btn-secondary"><i data-lucide="share-2"></i> Compartir</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast-message" class="toast-message hidden"></div>
+
+  <div id="app-widget" class="app-widget hidden">
+    <button id="app-widget-toggle" class="app-widget-btn" aria-label="Abrir widget">
+      <i data-lucide="grid"></i>
+    </button>
+    <div id="app-widget-menu" class="app-widget-menu">
+      <button id="app-widget-open-inicio" class="app-widget-action"><i data-lucide="file-text"></i> Inicio</button>
+      <button id="app-widget-open-bloc" class="app-widget-action"><i data-lucide="edit-3"></i> Bloc</button>
+      <button id="app-widget-open-formato" class="app-widget-action"><i data-lucide="layout"></i> Formato</button>
+      <button id="app-widget-share" class="app-widget-action"><i data-lucide="share-2"></i> Compartir</button>
+    </div>
+  </div>
+
+  <div id="modal-edit-profile" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-edit-profile" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2>Editar Datos</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="edit-firstname">Nombre</label>
+          <input type="text" id="edit-firstname" placeholder="Nombre">
+        </div>
+        <div class="form-group">
+          <label for="edit-lastname">Apellido</label>
+          <input type="text" id="edit-lastname" placeholder="Apellido">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label for="edit-birthdate">Fecha de nacimiento</label>
+          <input type="date" id="edit-birthdate">
+        </div>
+      </div>
+      <div class="action-buttons-row" style="margin-top:10px;">
+        <button id="btn-save-profile" class="btn btn-primary">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-about" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-about" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2>Sobre la Aplicación</h2>
+      <div class="about-text">
+        <p>Desarrollada por DXon para tu gestión eficiente.</p>
+        <p>Versión: 2.3, puede ser actualizada en cualquier momento.</p>
+        <a href="#" target="_blank">Página Web</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-templates" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-templates" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2>Modelados de Minutas</h2>
+      <div class="templates-list">
+        <div class="template-card">
+          <h4>Modelo Policial / Seguridad</h4>
+          <p class="template-snippet">CARACAS - CPNB<br>FECHA: 08/08/2026 | HORA: 14:30<br>LUGAR: PUNTO DE CONTROL VIAL<br>INFORMA: OFICIAL ROMERO<br>RESUMEN: Inspección preventiva...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="police">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Técnico / Informática</h4>
+          <p class="template-snippet">DEPARTAMENTO DE TI<br>FECHA: 08/08/2026 | HORA: 09:15<br>LUGAR: SERVIDOR CENTRAL<br>INFORMA: TEC. SISTEMAS<br>RESUMEN: Mantenimiento SSD...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="tech">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Empresarial</h4>
+          <p class="template-snippet">OFICINA CENTRAL<br>FECHA: 08/08/2026 | HORA: 11:00<br>LUGAR: SALA DE CONFERENCIAS<br>INFORMA: GERENCIA<br>RESUMEN: Seguimiento de proyectos...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="business">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Administración / Empresa</h4>
+          <p class="template-snippet">GERENCIA ADMINISTRATIVA<br>FECHA: 10/08/2026 | HORA: 08:30<br>LUGAR: OFICINA CENTRAL<br>INFORMA: COORDINADOR ADMINISTRATIVO<br>RESUMEN: Seguimiento de pagos y control documental...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="admin">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Recursos Humanos</h4>
+          <p class="template-snippet">DEPARTAMENTO DE RRHH<br>FECHA: 11/08/2026 | HORA: 09:00<br>LUGAR: ÁREA DE TALENTO HUMANO<br>INFORMA: ANALISTA RRHH<br>RESUMEN: Evaluación de contrataciones y seguimiento de personal...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="rrhh">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Operaciones / Producción</h4>
+          <p class="template-snippet">ÁREA DE OPERACIONES<br>FECHA: 12/08/2026 | HORA: 07:45<br>LUGAR: PLANTA DE PRODUCCIÓN<br>INFORMA: SUPERVISOR OPERATIVO<br>RESUMEN: Control de procesos y cumplimiento de metas diarias...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="operations">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Seguridad / Protección</h4>
+          <p class="template-snippet">SEGURIDAD INTERNA<br>FECHA: 13/08/2026 | HORA: 16:00<br>LUGAR: PUNTO DE CONTROL<br>INFORMA: ENCARGADO DE SEGURIDAD<br>RESUMEN: Monitoreo preventivo y revisión de protocolos...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="safety">Cargar</button>
+        </div>
+        <div class="template-card">
+          <h4>Modelo Educación / Formación</h4>
+          <p class="template-snippet">DEPARTAMENTO ACADÉMICO<br>FECHA: 14/08/2026 | HORA: 10:15<br>LUGAR: AULA MAGNA<br>INFORMA: DOCENTE RESPONSABLE<br>RESUMEN: Revisión de contenidos y seguimiento de actividades pedagógicas...</p>
+          <button class="btn btn-secondary btn-use-template" data-type="education">Cargar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-protocols" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-protocols" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2 style="color: var(--danger-color);"><i data-lucide="shield-alert"></i> PROTOCOLO</h2>
+      <div class="about-text"><br>
+        <ol style="padding-left: 20px; list-style-type: decimal;">
+          <li><strong>Protocolo de Seguridad:</strong> Mantener la confidencialidad de la información y proteger los datos sensibles.</li>
+          <li><strong>Protocolo de Uso:</strong> Utilizar la aplicación únicamente para fines legales y éticos.</li>
+          <li><strong>Protocolo de Actualización:</strong> Mantener la aplicación actualizada para garantizar la seguridad y el rendimiento óptimo.</li>
+          <li><strong>Protocolo de Soporte:</strong> Contactar al soporte técnico únicamente a través de los canales oficiales proporcionados.</li>
+          <li><strong>Protocolo de Responsabilidad:</strong> El usuario es responsable del contenido generado y compartido mediante la aplicación.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <script src="date/app.js?v=202608082000"></script>
+</body>
+</html>
