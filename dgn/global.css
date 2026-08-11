@@ -921,3 +921,20 @@ input.name-locked {
   border-top: 1px solid var(--border-color);
   font-size: 0.8rem;
 }
+
+.btn-descarga {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 24px;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+}
+
+.btn-descarga:hover {
+    background-color: #45a049;
+}
