@@ -260,6 +260,10 @@ body {
     background: transparent;
     gap: 10px;
   }
+
+   movilApk{
+      display:none;
+   }
   .nav-item {
     flex-direction: row;
     gap: 6px;
