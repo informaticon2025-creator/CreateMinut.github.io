@@ -1,13 +1,3 @@
-function getApiBaseUrl() {
-  const { protocol, hostname } = window.location;
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${protocol}//localhost/CM`;
-  }
-
-  return `${protocol}//${window.location.host}`;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   function refreshIcons() {
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -154,21 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (themeSelect) themeSelect.value = savedTheme;
   if (fontSizeSelect) fontSizeSelect.value = savedFontSize;
 
-  async function guardarConfiguracionEnBD(nombreUsuario, tema, tamanoFuente) {
-    try {
-      const res = await fetch(`${getApiBaseUrl()}/date/configuracion.php?v=${Date.now()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre_usuario: nombreUsuario, tema, tamano_fuente: tamanoFuente })
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Error al guardar configuración:', err);
-      return { status: 'error', message: err.message };
-    }
-  }
-
   if (themeSelect) {
     themeSelect.addEventListener('change', async (e) => {
       const selectedTheme = e.target.value;
@@ -176,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.className = '';
       document.body.classList.add(selectedTheme, currentFontSize);
       localStorage.setItem('app_selected_theme', selectedTheme);
-      await guardarConfiguracionEnBD(localStorage.getItem('app_user_name') || '', selectedTheme, currentFontSize);
     });
   }
 
@@ -187,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.className = '';
       document.body.classList.add(currentTheme, selectedFont);
       localStorage.setItem('app_font_size', selectedFont);
-      await guardarConfiguracionEnBD(localStorage.getItem('app_user_name') || '', currentTheme, selectedFont);
     });
   }
 
@@ -639,6 +612,9 @@ document.addEventListener('DOMContentLoaded', () => {
           state.data[rowIndex][colIndex] = e.target.value;
           saveTableState(state);
         });
+        input.addEventListener('focus', () => {
+          setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 150);
+        });
 
         const showCellMenu = (e) => {
           e.preventDefault();
@@ -901,10 +877,28 @@ document.addEventListener('DOMContentLoaded', () => {
     hideResetTableModal();
   });
 
+  function descargarBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
   function exportTableState(stateToExport, requestedName = '') {
     const state = ensureTableData(JSON.parse(JSON.stringify(stateToExport)));
     const title = (state.title || requestedName || 'TABLE DATE').toUpperCase();
     const safeName = (requestedName || state.title || 'table_date').trim().replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_').toLowerCase() || 'table_date';
+    const escapeExcelValue = (value) => {
+      const escaped = String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return escaped || '&nbsp;';
+    };
 
     const tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -912,8 +906,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <meta charset="utf-8" />
         <style>
           body { font-family: Arial, sans-serif; margin: 0; }
-          table { border-collapse: collapse; width: 100%; background: #d9f0c6; }
-          th, td { border: 1px solid #6d7d5b; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 12px; color: #1b2d12; }
+          table { border-collapse: collapse; width: 100%; table-layout: fixed; background: #d9f0c6; }
+          th, td { width: 140px; height: 30px; border: 1px solid #6d7d5b; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 12px; color: #1b2d12; }
           th { background: #bfe68d; font-weight: bold; }
           td { background: #edf9d5; }
         </style>
@@ -922,16 +916,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="font-weight:bold; font-size:18px; padding: 10px 0 8px; color: #1b2d12;">${title}</div>
         <table>
           <tr>
-            <th style="border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">ID</th>
-            ${state.columns.map((cell) => `<th style="border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>`).join('')}
+            <th style="width: 55px; height: 30px; border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">ID</th>
+            ${state.columns.map((cell) => `<th style="width: 140px; height: 30px; border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">${escapeExcelValue(cell)}</th>`).join('')}
           </tr>
           ${state.data.map((row, rowIndex) => `
             <tr>
-              <td style="border: 1px solid #6d7d5b; background: #edf9d5; padding: 8px 10px;">${String(rowIndex).padStart(2, '0')}</td>
+              <td style="width: 55px; height: 30px; border: 1px solid #6d7d5b; background: #edf9d5; padding: 8px 10px;">${String(rowIndex).padStart(2, '0')}</td>
               ${row.map((cell, colIndex) => {
                 const key = `${rowIndex}|${colIndex}`;
                 const background = state.cellStyles && state.cellStyles[key] ? state.cellStyles[key] : '#edf9d5';
-                return `<td style="border: 1px solid #6d7d5b; background: ${background}; padding: 8px 10px;">${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+                return `<td style="width: 140px; height: 30px; border: 1px solid #6d7d5b; background: ${background}; padding: 8px 10px;">${escapeExcelValue(cell)}</td>`;
               }).join('')}
             </tr>
           `).join('')}
@@ -941,12 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${safeName}.xls`;
-    link.click();
-    URL.revokeObjectURL(url);
+    descargarBlob(blob, `${safeName}.xls`);
     showToast('Archivo Excel descargado');
   }
 
@@ -1367,32 +1356,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return { status: 'ok', localOnly: true };
   }
 
-  async function guardarMinutaEnBackend(datosMinuta) {
-    try {
-      const res = await fetch(`${getApiBaseUrl()}/date/minutas.php?v=${Date.now()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosMinuta)
-      });
-
-      const text = await res.text();
-      let respuesta;
-      try {
-        respuesta = JSON.parse(text);
-      } catch (e) {
-        respuesta = { status: 'error', message: text };
-      }
-
-      if (respuesta.status === 'ok') {
-        return { status: 'ok', backend: true };
-      }
-
-      return { status: 'error', message: respuesta.message || 'No se pudo guardar la minuta.' };
-    } catch (err) {
-      return { status: 'error', message: err.message || 'Error de conexión con el backend.' };
-    }
-  }
-
   if (btnCreate) {
     btnCreate.addEventListener('click', async () => {
       renderMinuta();
@@ -1408,16 +1371,9 @@ document.addEventListener('DOMContentLoaded', () => {
         lema: inputs.lema.value.trim()
       };
 
-      const backendResult = await guardarMinutaEnBackend(datosMinuta);
-      if (backendResult.status === 'ok') {
-        enviarAlertaNotificación('Minuta Generada', 'Se guardó con éxito en la base de datos.');
-        return;
-      }
-
       const localResult = await guardarMinutaLocal(datosMinuta);
       if (localResult.status === 'ok') {
-        console.warn('Backend no disponible. Se guardó la minuta localmente:', backendResult.message);
-        showToast('Se guardó localmente porque el backend no respondió.');
+        showToast('Minuta guardada en este dispositivo');
       }
     });
   }
@@ -1548,10 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       window.html2canvas(minutaOutput, { scale: 2 }).then(canvas => {
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `minuta_${Date.now()}.png`;
-        link.click();
+        descargarBlob(dataUrlToBlob(canvas.toDataURL('image/png')), `minuta_${Date.now()}.png`);
       }).catch(() => {
         showToast('Error al generar la imagen.');
       });
@@ -1628,6 +1581,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return preview;
   }
 
+  function dataUrlToBlob(dataUrl) {
+    const [header, data] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const binary = atob(data);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type: mime });
+  }
+
   function exportTablePdf(tableData, fileName) {
     if (!window.html2pdf) {
       showToast('No se pudo preparar el PDF');
@@ -1670,10 +1632,12 @@ document.addEventListener('DOMContentLoaded', () => {
       margin: 0.35,
       filename: `${fileName || 'tabla'}.pdf`,
       image: { type: 'jpeg', quality: 0.96 },
-      html2canvas: { scale: 1.5, backgroundColor: '#ffffff' },
+      html2canvas: { scale: 1.5, backgroundColor: '#ffffff', useCORS: true, scrollX: 0, scrollY: 0 },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
     }).from(exportSurface).save().then(() => {
       showToast('PDF descargado');
+    }).catch(() => {
+      showToast('No se pudo generar el PDF');
     }).finally(() => exportSurface.remove());
   }
 
@@ -1781,11 +1745,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const safeName = title.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_-]+/g, '_').replace(/^_+|_+$/g, '') || 'acta_reunion';
     Packer.toBlob(documentFile).then((blob) => {
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${safeName}.docx`;
-      link.click();
-      URL.revokeObjectURL(link.href);
+      descargarBlob(blob, `${safeName}.docx`);
       showToast('Acta DOCX generada');
     });
   }
@@ -1824,29 +1784,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function guardarNotaEnBD(title, body) {
-    try {
-      const res = await fetch(`${getApiBaseUrl()}/date/notas.php?v=${Date.now()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titulo: title, contenido: body })
-      });
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        data = { status: 'error', message: text };
-      }
-      return data;
-    } catch (err) {
-      console.error('Error al guardar la nota en MySQL:', err);
-      return { status: 'error', message: err.message };
-    }
-  }
-
   if (btnSaveNote) {
-    btnSaveNote.addEventListener('click', async () => {
+    btnSaveNote.addEventListener('click', () => {
       const title = noteTitleInput ? noteTitleInput.value.trim() : '';
       const body = noteBodyInput ? noteBodyInput.value.trim() : '';
       if (!body) { alert('Escriba algún contenido en la nota.'); return; }
@@ -1859,10 +1798,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saveNotesToStorage();
       renderNotesList();
 
-      const result = await guardarNotaEnBD(title, body);
-      if (result.status === 'ok') {
-        enviarAlertaNotificación('Nota Guardada', title || 'Se registró una nueva nota en MySQL.');
-      }
+      showToast('Nota guardada en este dispositivo');
 
       if (noteTitleInput) noteTitleInput.value = '';
       if (noteBodyInput) noteBodyInput.value = '';
@@ -1971,19 +1907,4 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // legacy name input handlers removed; editing handled via Edit Profile modal
-});
-
-async function probarConexion() {
-  try {
-    const respuesta = await fetch(`${getApiBaseUrl()}/date/conexion.php`);
-    if (respuesta.ok) {
-      console.log('✅ Conexión establecida correctamente.');
-    }
-  } catch (error) {
-    console.error('❌ Error al intentar conectar:', error);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  probarConexion();
 });
