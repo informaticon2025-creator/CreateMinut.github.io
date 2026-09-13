@@ -1,4 +1,4 @@
-﻿function getApiBaseUrl() {
+function getApiBaseUrl() {
   const { protocol, hostname } = window.location;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -213,6 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
       nav.classList.toggle('active', target === tabId);
     });
     tabViews.forEach(view => view.classList.toggle('active', view.id === tabId));
+    if (tabId !== 'view-inicio') {
+      document.documentElement.classList.remove('table-view-mode');
+    }
   }
 
   navItems.forEach(item => {
@@ -234,73 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMenu);
   if (closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMenu);
   if (overlay) overlay.addEventListener('click', toggleMenu);
-
-  // --- WIDGET PARA PC / APK ---
-  const appWidget = document.getElementById('app-widget');
-  const appWidgetToggle = document.getElementById('app-widget-toggle');
-  const appWidgetMenu = document.getElementById('app-widget-menu');
-  const appOpenInicio = document.getElementById('app-widget-open-inicio');
-  const appOpenBloc = document.getElementById('app-widget-open-bloc');
-  const appOpenFormato = document.getElementById('app-widget-open-formato');
-  const appShare = document.getElementById('app-widget-share');
-
-  function isAppInstalled() {
-    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || document.referrer.startsWith('android-app://');
-  }
-
-  function shouldShowAppWidget() {
-    return isAppInstalled() || window.innerWidth >= 1024;
-  }
-
-  function updateAppWidgetVisibility() {
-    if (!appWidget) return;
-    if (shouldShowAppWidget()) {
-      appWidget.classList.remove('hidden');
-    } else {
-      appWidget.classList.add('hidden');
-      appWidget.classList.remove('open');
-    }
-  }
-
-  if (appWidgetToggle && appWidget) {
-    appWidgetToggle.addEventListener('click', () => {
-      appWidget.classList.toggle('open');
-    });
-  }
-
-  if (appOpenInicio) appOpenInicio.addEventListener('click', () => {
-    activateTab('view-inicio');
-    appWidget.classList.remove('open');
-  });
-  if (appOpenBloc) appOpenBloc.addEventListener('click', () => {
-    activateTab('view-bloc');
-    appWidget.classList.remove('open');
-  });
-  if (appOpenFormato) appOpenFormato.addEventListener('click', () => {
-    activateTab('view-formato');
-    appWidget.classList.remove('open');
-  });
-  if (appShare) appShare.addEventListener('click', async () => {
-    appWidget.classList.remove('open');
-    const shareUrl = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'CreatorMinut', text: 'Comparte CreatorMinut', url: shareUrl });
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard?.writeText(shareUrl);
-          alert('Enlace copiado al portapapeles.');
-        }
-      }
-    } else if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Enlace copiado al portapapeles.');
-    }
-  });
-
-  updateAppWidgetVisibility();
-  window.matchMedia('(display-mode: standalone)').addEventListener('change', updateAppWidgetVisibility);
-  window.addEventListener('resize', updateAppWidgetVisibility);
 
   // --- MODALES ---
   const modalAbout = document.getElementById('modal-about');
@@ -372,6 +308,670 @@ document.addEventListener('DOMContentLoaded', () => {
     resumen: document.getElementById('f-resumen'),
     lema: document.getElementById('f-lema')
   };
+
+  function normalizeSummaryText(value) {
+    if (!value) return '';
+    return value
+      .replace(/\s+/g, ' ')
+      .replace(/\bse realiz[oó]\b/gi, 'Se realizó')
+      .replace(/\bse dio\b/gi, 'Se realizó')
+      .replace(/\bse procedi[oó]\b/gi, 'Se procedió')
+      .replace(/\bse verific[oó]\b/gi, 'Se verificó')
+      .replace(/\bse revis[oó]\b/gi, 'Se revisó')
+      .replace(/\bse coordino\b/gi, 'Se coordinó')
+      .replace(/\bse atendio\b/gi, 'Se atendió')
+      .replace(/\bquedo\b/gi, 'quedó')
+      .replace(/\bq\s*ue\b/gi, 'que')
+      .replace(/\bpor medio de\b/gi, 'mediante')
+      .replace(/\bcon el fin de\b/gi, 'con el propósito de')
+      .trim();
+  }
+
+  function showHomeSelector() {
+    const form = document.getElementById('minuta-form');
+    const tablePanel = document.getElementById('table-builder-panel');
+    const actaPanel = document.getElementById('actas-builder-panel');
+    const homeSelector = document.getElementById('home-type-selector');
+    document.documentElement.classList.remove('table-view-mode');
+    if (form) form.style.display = 'none';
+    if (tablePanel) tablePanel.style.display = 'none';
+    if (actaPanel) actaPanel.style.display = 'none';
+    if (homeSelector) homeSelector.style.display = 'block';
+  }
+
+  function showTableBuilder() {
+    const form = document.getElementById('minuta-form');
+    const tablePanel = document.getElementById('table-builder-panel');
+    const actaPanel = document.getElementById('actas-builder-panel');
+    const homeSelector = document.getElementById('home-type-selector');
+    document.documentElement.classList.add('table-view-mode');
+    if (form) form.style.display = 'none';
+    if (tablePanel) tablePanel.style.display = 'block';
+    if (actaPanel) actaPanel.style.display = 'none';
+    if (homeSelector) homeSelector.style.display = 'none';
+    renderTableBuilder();
+  }
+
+  function showMinutaForm(templateKey = '') {
+    const form = document.getElementById('minuta-form');
+    const tablePanel = document.getElementById('table-builder-panel');
+    const actaPanel = document.getElementById('actas-builder-panel');
+    document.documentElement.classList.remove('table-view-mode');
+    if (form) form.style.display = 'none';
+    if (tablePanel) tablePanel.style.display = 'none';
+    if (actaPanel) actaPanel.style.display = 'none';
+
+    if (templateKey === 'plantillas') {
+      const modalTemplates = document.getElementById('modal-templates');
+      if (modalTemplates) modalTemplates.classList.add('open');
+      return;
+    }
+
+    if (templateKey === 'table') {
+      showTableBuilder();
+      return;
+    }
+
+    if (templateKey === 'actas') {
+      const homeSelector = document.getElementById('home-type-selector');
+      if (homeSelector) homeSelector.style.display = 'none';
+      if (actaPanel) actaPanel.style.display = 'block';
+      return;
+    }
+
+    if (!form) return;
+    form.style.display = 'block';
+
+    if (!templateKey) return;
+
+    const templateMap = {
+      general: {
+        ciudad: 'MINUTA GENERAL',
+        lugar: 'OFICINA / ÁREA DE TRABAJO',
+        informa: localStorage.getItem('app_user_name') || 'RESPONSABLE DEL ÁREA',
+        resumen: 'Se realizó la revisión del tema solicitado, se analizaron las condiciones actuales y se definieron las acciones correspondientes para continuar con el proceso de forma ordenada y documentada.',
+        lema: 'SEGUIMIENTO Y CONTROL'
+      }
+    };
+
+    const selected = templateMap[templateKey];
+    if (!selected) return;
+
+    inputs.ciudad.value = selected.ciudad;
+    inputs.lugar.value = selected.lugar;
+    inputs.informa.value = selected.informa;
+    inputs.resumen.value = selected.resumen;
+    inputs.lema.value = selected.lema;
+    renderMinuta();
+  }
+
+  document.querySelectorAll('.home-option-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const type = button.getAttribute('data-home-template');
+      showMinutaForm(type);
+    });
+  });
+
+  document.getElementById('btn-back-from-acta')?.addEventListener('click', showHomeSelector);
+  const actaDateInput = document.getElementById('acta-date');
+  if (actaDateInput && !actaDateInput.value) actaDateInput.value = new Date().toISOString().slice(0, 10);
+
+  const tableDefaults = {
+    columns: ['Nombre', 'Apellido', 'C.I', 'Teléfono', 'Dirección'],
+    rows: 20
+  };
+
+  let tableSelection = null;
+  let tableSearchTerm = '';
+
+  function createDefaultTableState() {
+    return {
+      title: 'TABLE DATE',
+      columns: [...tableDefaults.columns],
+      rows: tableDefaults.rows,
+      data: Array.from({ length: tableDefaults.rows }, () => Array(tableDefaults.columns.length).fill(''))
+    };
+  }
+
+  function getTablePalette() {
+    const bodyClasses = document.body.className || '';
+
+    if (bodyClasses.includes('theme-whatsapp')) {
+      return { header: '#d7f7dc', body: '#f3fff7', border: '#b2d9bf', text: '#123127' };
+    }
+    if (bodyClasses.includes('theme-facebook')) {
+      return { header: '#e4efff', body: '#f7f9fc', border: '#b1c8f1', text: '#1b2a41' };
+    }
+    if (bodyClasses.includes('theme-xp')) {
+      return { header: '#dfeeff', body: '#f5f9ff', border: '#9ab8e6', text: '#183153' };
+    }
+    if (bodyClasses.includes('theme-vscode')) {
+      return { header: '#2d2d30', body: '#1e1f22', border: '#474d5a', text: '#ececec' };
+    }
+    if (bodyClasses.includes('theme-matrix')) {
+      return { header: '#1d4d32', body: '#0f241b', border: '#345b49', text: '#d1f7d4' };
+    }
+
+    return { header: '#bfe691', body: '#edf9d5', border: 'rgba(0,0,0,0.2)', text: '#1e2d17' };
+  }
+
+  function getTableState() {
+    const stored = localStorage.getItem('table_date_state');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed.columns) && parsed.columns.length > 0 && Number.isInteger(parsed.rows) && parsed.rows > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('No se pudo leer la tabla guardada:', e);
+      }
+    }
+
+    return createDefaultTableState();
+  }
+
+  function resetTableData() {
+    const freshState = createDefaultTableState();
+    saveTableState(freshState);
+    renderTableBuilder();
+  }
+
+  function saveTableState(state) {
+    localStorage.setItem('table_date_state', JSON.stringify(state));
+  }
+
+  function ensureTableData(state) {
+    const columnCount = state.columns.length;
+    const rowCount = state.rows;
+    if (!Array.isArray(state.data)) {
+      state.data = Array.from({ length: rowCount }, () => Array(columnCount).fill(''));
+      return state;
+    }
+
+    while (state.data.length < rowCount) {
+      state.data.push(Array(columnCount).fill(''));
+    }
+
+    while (state.data.length > rowCount) {
+      state.data.pop();
+    }
+
+    state.data.forEach((row) => {
+      while (row.length < columnCount) row.push('');
+      while (row.length > columnCount) row.pop();
+    });
+
+    return state;
+  }
+
+  function renderTableBuilder() {
+    const tablePanel = document.getElementById('table-builder-panel');
+    if (!tablePanel) return;
+
+    const table = document.getElementById('dynamic-data-table');
+    const tableNameInput = document.getElementById('table-name-input');
+    if (!table) return;
+
+    let state = getTableState();
+    state = ensureTableData(state);
+    if (tableNameInput && state.title) tableNameInput.value = state.title;
+    saveTableState(state);
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const palette = getTablePalette();
+
+    const headerRow = document.createElement('tr');
+    const idHeader = document.createElement('th');
+    idHeader.style.border = `1px solid ${palette.border}`;
+    idHeader.style.padding = '10px';
+    idHeader.style.width = '64px';
+    idHeader.style.background = palette.header;
+    idHeader.style.color = palette.text;
+    idHeader.style.fontWeight = '700';
+    idHeader.textContent = 'ID';
+    headerRow.appendChild(idHeader);
+
+    state.columns.forEach((col, index) => {
+      const th = document.createElement('th');
+      th.style.border = `1px solid ${palette.border}`;
+      th.style.padding = '10px';
+      th.style.background = palette.header;
+      th.style.color = palette.text;
+      th.style.fontWeight = '700';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = col;
+      input.placeholder = `Columna ${index + 1}`;
+      input.style.width = '100%';
+      input.style.minWidth = '140px';
+      input.style.background = 'transparent';
+      input.style.color = palette.text;
+      input.style.border = 'none';
+      input.style.fontWeight = '700';
+      input.addEventListener('input', (e) => {
+        state.columns[index] = e.target.value || `Columna ${index + 1}`;
+        saveTableState(state);
+      });
+      th.appendChild(input);
+      headerRow.appendChild(th);
+    });
+
+    const actionCell = document.createElement('th');
+    actionCell.style.border = `1px solid ${palette.border}`;
+    actionCell.style.padding = '10px';
+    actionCell.style.width = '90px';
+    actionCell.style.background = palette.header;
+    actionCell.style.color = palette.text;
+    actionCell.style.fontWeight = '700';
+    actionCell.textContent = 'Acción';
+    headerRow.appendChild(actionCell);
+    thead.appendChild(headerRow);
+
+    function hideContextMenu() {
+      const contextMenu = document.getElementById('table-context-menu');
+      if (contextMenu) {
+        contextMenu.style.display = 'none';
+        contextMenu.classList.add('hidden');
+      }
+      document.querySelectorAll('.table-submenu').forEach((menu) => menu.classList.add('hidden'));
+    }
+
+    function setSelectedCell(rowIndex, colIndex, targetCell) {
+      tableSelection = { rowIndex, colIndex };
+      document.querySelectorAll('.table-selected-cell').forEach((cell) => cell.classList.remove('table-selected-cell'));
+      if (targetCell) targetCell.classList.add('table-selected-cell');
+    }
+
+    document.removeEventListener('click', handleTableDocumentClick);
+    document.addEventListener('click', handleTableDocumentClick);
+
+    document.querySelectorAll('.table-menu-main[data-submenu]').forEach((button) => {
+      button.onclick = (event) => {
+        event.stopPropagation();
+        const panelName = button.dataset.submenu;
+        const submenu = document.querySelector(`[data-submenu-panel="${panelName}"]`);
+        document.querySelectorAll('.table-submenu').forEach((menu) => {
+          if (menu !== submenu) menu.classList.add('hidden');
+        });
+        if (submenu) submenu.classList.toggle('hidden');
+      };
+    });
+
+    const normalizedSearch = tableSearchTerm.trim().toLocaleLowerCase();
+    state.data.forEach((row, rowIndex) => {
+      const searchableRow = [`${rowIndex}`.padStart(2, '0'), ...row].join(' ').toLocaleLowerCase();
+      if (normalizedSearch && !searchableRow.includes(normalizedSearch)) return;
+
+      const tr = document.createElement('tr');
+      const idCell = document.createElement('td');
+      idCell.style.border = `1px solid ${palette.border}`;
+      idCell.style.padding = '8px';
+      idCell.style.background = palette.body;
+      idCell.style.color = palette.text;
+      idCell.style.fontWeight = '700';
+      idCell.textContent = String(rowIndex).padStart(2, '0');
+      tr.appendChild(idCell);
+      row.forEach((value, colIndex) => {
+        const td = document.createElement('td');
+        td.dataset.rowIndex = String(rowIndex);
+        td.dataset.colIndex = String(colIndex);
+        td.style.border = `1px solid ${palette.border}`;
+        td.style.padding = '8px';
+        td.style.background = state.cellStyles && state.cellStyles[`${rowIndex}|${colIndex}`] ? state.cellStyles[`${rowIndex}|${colIndex}`] : palette.body;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.placeholder = '...';
+        input.style.width = '100%';
+        input.style.minWidth = '120px';
+        input.style.background = 'transparent';
+        input.style.color = palette.text;
+        input.style.border = 'none';
+        input.addEventListener('input', (e) => {
+          state.data[rowIndex][colIndex] = e.target.value;
+          saveTableState(state);
+        });
+
+        const showCellMenu = (e) => {
+          e.preventDefault();
+          tableSelection = { rowIndex, colIndex };
+          setSelectedCell(rowIndex, colIndex, td);
+          const contextMenu = document.getElementById('table-context-menu');
+          if (!contextMenu) return;
+          contextMenu.style.left = `${e.clientX}px`;
+          contextMenu.style.top = `${e.clientY}px`;
+          contextMenu.style.display = 'block';
+          contextMenu.classList.remove('hidden');
+          document.querySelectorAll('.table-submenu').forEach((menu) => menu.classList.add('hidden'));
+        };
+
+        input.addEventListener('contextmenu', showCellMenu);
+        td.addEventListener('contextmenu', showCellMenu);
+        td.addEventListener('click', () => {
+          tableSelection = { rowIndex, colIndex };
+          setSelectedCell(rowIndex, colIndex, td);
+          hideContextMenu();
+        });
+
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+
+      const actionTd = document.createElement('td');
+      actionTd.style.border = `1px solid ${palette.border}`;
+      actionTd.style.padding = '8px';
+      actionTd.style.background = palette.body;
+      actionTd.style.textAlign = 'center';
+      actionTd.innerHTML = '<span style="font-size: 1.2rem; opacity: 0.7; cursor: pointer;">⋮</span>';
+      actionTd.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        tableSelection = { rowIndex, colIndex: null };
+        const contextMenu = document.getElementById('table-context-menu');
+        if (!contextMenu) return;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.display = 'block';
+        contextMenu.classList.remove('hidden');
+      });
+      tr.appendChild(actionTd);
+      tbody.appendChild(tr);
+    });
+
+    if (state.data.length === 0) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = state.columns.length + 2;
+      emptyCell.textContent = normalizedSearch ? 'No hay coincidencias' : 'Sin filas';
+      emptyCell.style.padding = '18px';
+      emptyCell.style.textAlign = 'center';
+      emptyCell.style.background = palette.body;
+      emptyCell.style.color = palette.text;
+      emptyRow.appendChild(emptyCell);
+      tbody.appendChild(emptyRow);
+    }
+  }
+
+  function handleTableDocumentClick(event) {
+    const isTableAction = event.target.closest('.table-menu-action') || event.target.closest('.table-menu-main') || event.target.closest('.table-submenu');
+    const isCellClick = event.target.closest('td') || event.target.closest('th');
+    if (!isTableAction && !isCellClick) {
+      const contextMenu = document.getElementById('table-context-menu');
+      if (contextMenu) {
+        contextMenu.style.display = 'none';
+        contextMenu.classList.add('hidden');
+      }
+      document.querySelectorAll('.table-submenu').forEach((menu) => menu.classList.add('hidden'));
+    }
+  }
+
+  document.getElementById('table-context-menu')?.addEventListener('click', (event) => {
+    const button = event.target.closest('.table-menu-action');
+    if (!button) return;
+
+    event.stopPropagation();
+    const action = button.dataset.action;
+    const state = getTableState();
+
+    if (!tableSelection || tableSelection.colIndex === null || tableSelection.colIndex === undefined) {
+      if (action === 'delete' && tableSelection) {
+        const rowIndex = tableSelection.rowIndex;
+        state.data.splice(rowIndex, 1);
+        state.rows = state.data.length;
+        saveTableState(state);
+        renderTableBuilder();
+      }
+      const contextMenu = document.getElementById('table-context-menu');
+      if (contextMenu) {
+        contextMenu.style.display = 'none';
+        contextMenu.classList.add('hidden');
+      }
+      return;
+    }
+
+    const rowIndex = tableSelection.rowIndex;
+    const colIndex = tableSelection.colIndex;
+
+    if (action === 'delete') {
+      state.data[rowIndex][colIndex] = '';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-yellow') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#fef3c7';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-green') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#bbf7d0';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-red') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#fecaca';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-orange') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#fed7aa';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-fuchsia') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#fbcfe8';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-purple') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#ddd6fe';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-blue') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#bfdbfe';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'mark-brown') {
+      state.cellStyles = state.cellStyles || {};
+      state.cellStyles[`${rowIndex}|${colIndex}`] = '#e7d8c9';
+      saveTableState(state);
+      renderTableBuilder();
+    }
+
+    if (action === 'move-up') {
+      if (rowIndex > 0) {
+        [state.data[rowIndex][colIndex], state.data[rowIndex - 1][colIndex]] = [state.data[rowIndex - 1][colIndex], state.data[rowIndex][colIndex]];
+        saveTableState(state);
+        renderTableBuilder();
+      }
+    }
+
+    if (action === 'move-down') {
+      if (rowIndex < state.data.length - 1) {
+        [state.data[rowIndex][colIndex], state.data[rowIndex + 1][colIndex]] = [state.data[rowIndex + 1][colIndex], state.data[rowIndex][colIndex]];
+        saveTableState(state);
+        renderTableBuilder();
+      }
+    }
+
+    if (action === 'move-left') {
+      if (colIndex > 0) {
+        [state.data[rowIndex][colIndex], state.data[rowIndex][colIndex - 1]] = [state.data[rowIndex][colIndex - 1], state.data[rowIndex][colIndex]];
+        saveTableState(state);
+        renderTableBuilder();
+      }
+    }
+
+    if (action === 'move-right') {
+      if (colIndex < state.columns.length - 1) {
+        [state.data[rowIndex][colIndex], state.data[rowIndex][colIndex + 1]] = [state.data[rowIndex][colIndex + 1], state.data[rowIndex][colIndex]];
+        saveTableState(state);
+        renderTableBuilder();
+      }
+    }
+
+    const contextMenu = document.getElementById('table-context-menu');
+    if (contextMenu) {
+      contextMenu.style.display = 'none';
+      contextMenu.classList.add('hidden');
+    }
+    document.querySelectorAll('.table-submenu').forEach((menu) => menu.classList.add('hidden'));
+  });
+
+  document.getElementById('table-name-input')?.addEventListener('input', (event) => {
+    const state = getTableState();
+    state.title = event.target.value.trim() || 'TABLE DATE';
+    saveTableState(state);
+  });
+
+  document.getElementById('table-search-input')?.addEventListener('input', (event) => {
+    tableSearchTerm = event.target.value || '';
+    renderTableBuilder();
+    const searchInput = document.getElementById('table-search-input');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.setSelectionRange(tableSearchTerm.length, tableSearchTerm.length);
+    }
+  });
+
+  document.getElementById('btn-back-to-home')?.addEventListener('click', () => {
+    showHomeSelector();
+  });
+
+  document.getElementById('btn-add-table-column')?.addEventListener('click', () => {
+    const state = getTableState();
+    state.columns.push(`Columna ${state.columns.length + 1}`);
+    state.data = state.data.map((row) => [...row, '']);
+    saveTableState(state);
+    renderTableBuilder();
+  });
+
+  document.getElementById('btn-add-table-row')?.addEventListener('click', () => {
+    const state = getTableState();
+    const columnCount = state.columns.length || 1;
+    state.data.push(Array(columnCount).fill(''));
+    state.rows = state.data.length;
+    saveTableState(state);
+    renderTableBuilder();
+  });
+
+  const resetTableModal = document.getElementById('reset-table-modal');
+
+  function showResetTableModal() {
+    if (resetTableModal) {
+      resetTableModal.classList.add('open');
+      resetTableModal.style.display = 'flex';
+    }
+  }
+
+  function hideResetTableModal() {
+    if (resetTableModal) {
+      resetTableModal.classList.remove('open');
+      resetTableModal.style.display = 'none';
+    }
+  }
+
+  document.getElementById('btn-reset-table')?.addEventListener('click', showResetTableModal);
+  document.getElementById('btn-reset-confirm-no')?.addEventListener('click', hideResetTableModal);
+  document.getElementById('btn-reset-confirm-yes')?.addEventListener('click', () => {
+    resetTableData();
+    hideResetTableModal();
+  });
+
+  function exportTableState(stateToExport, requestedName = '') {
+    const state = ensureTableData(JSON.parse(JSON.stringify(stateToExport)));
+    const title = (state.title || requestedName || 'TABLE DATE').toUpperCase();
+    const safeName = (requestedName || state.title || 'table_date').trim().replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_').toLowerCase() || 'table_date';
+
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; }
+          table { border-collapse: collapse; width: 100%; background: #d9f0c6; }
+          th, td { border: 1px solid #6d7d5b; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 12px; color: #1b2d12; }
+          th { background: #bfe68d; font-weight: bold; }
+          td { background: #edf9d5; }
+        </style>
+      </head>
+      <body>
+        <div style="font-weight:bold; font-size:18px; padding: 10px 0 8px; color: #1b2d12;">${title}</div>
+        <table>
+          <tr>
+            <th style="border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">ID</th>
+            ${state.columns.map((cell) => `<th style="border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>`).join('')}
+          </tr>
+          ${state.data.map((row, rowIndex) => `
+            <tr>
+              <td style="border: 1px solid #6d7d5b; background: #edf9d5; padding: 8px 10px;">${String(rowIndex).padStart(2, '0')}</td>
+              ${row.map((cell, colIndex) => {
+                const key = `${rowIndex}|${colIndex}`;
+                const background = state.cellStyles && state.cellStyles[key] ? state.cellStyles[key] : '#edf9d5';
+                return `<td style="border: 1px solid #6d7d5b; background: ${background}; padding: 8px 10px;">${String(cell ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeName}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Archivo Excel descargado');
+  }
+
+  function exportTableToCsv() {
+    exportTableState(getTableState());
+  }
+
+  document.getElementById('btn-save-table')?.addEventListener('click', () => {
+    const state = ensureTableData(getTableState());
+    const savedTable = {
+      type: 'table',
+      title: state.title || 'TABLE DATE',
+      body: `Tabla guardada: ${state.title || 'TABLE DATE'}`,
+      tableData: JSON.parse(JSON.stringify(state)),
+      date: new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
+    };
+    notes.unshift(savedTable);
+    saveNotesToStorage();
+    renderNotesList();
+    showToast('Tabla guardada en Notas');
+  });
+
+  document.getElementById('btn-export-table')?.addEventListener('click', () => {
+    exportTableToCsv();
+  });
 
   const dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
   const dynamicNotesContainer = document.getElementById('dynamic-notes-container');
@@ -703,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const valCiudad = inputs.ciudad.value.trim() ? inputs.ciudad.value.toUpperCase() : '';
     const valLugar = inputs.lugar.value.trim() ? inputs.lugar.value.toUpperCase() : '';
     const valInforma = inputs.informa.value.trim() ? inputs.informa.value.toUpperCase() : '';
-    const valResumen = inputs.resumen.value.trim() ? inputs.resumen.value : '';
+    const valResumen = inputs.resumen.value.trim() ? normalizeSummaryText(inputs.resumen.value) : '';
     const valLema = inputs.lema.value.trim() ? inputs.lema.value.toUpperCase() : '';
 
     minutaOutput.innerText = `${valCiudad}\n\nFECHA: ${formattedDate}\n\nHORA: ${inputs.hora.value}\n\nLUGAR: ${valLugar}\n\nINFORMA: ${valInforma}\n\n${extraFieldsText}RESUMEN:\n${valResumen}\n\n${extraNotesText}${extraInstitutionsText}\n${valLema}`;
@@ -756,6 +1356,43 @@ document.addEventListener('DOMContentLoaded', () => {
     minutaOutput.innerText = formatoText;
   }
 
+  async function guardarMinutaLocal(datosMinuta) {
+    const key = 'creatorMinut_local_minutas';
+    const guardadas = JSON.parse(localStorage.getItem(key) || '[]');
+    guardadas.unshift({
+      ...datosMinuta,
+      fechaGuardado: new Date().toISOString()
+    });
+    localStorage.setItem(key, JSON.stringify(guardadas.slice(0, 25)));
+    return { status: 'ok', localOnly: true };
+  }
+
+  async function guardarMinutaEnBackend(datosMinuta) {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/date/minutas.php?v=${Date.now()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosMinuta)
+      });
+
+      const text = await res.text();
+      let respuesta;
+      try {
+        respuesta = JSON.parse(text);
+      } catch (e) {
+        respuesta = { status: 'error', message: text };
+      }
+
+      if (respuesta.status === 'ok') {
+        return { status: 'ok', backend: true };
+      }
+
+      return { status: 'error', message: respuesta.message || 'No se pudo guardar la minuta.' };
+    } catch (err) {
+      return { status: 'error', message: err.message || 'Error de conexión con el backend.' };
+    }
+  }
+
   if (btnCreate) {
     btnCreate.addEventListener('click', async () => {
       renderMinuta();
@@ -767,34 +1404,20 @@ document.addEventListener('DOMContentLoaded', () => {
         hora: inputs.hora.value,
         lugar: inputs.lugar.value.trim(),
         informa: inputs.informa.value.trim(),
-        resumen: inputs.resumen.value.trim(),
+        resumen: normalizeSummaryText(inputs.resumen.value.trim()),
         lema: inputs.lema.value.trim()
       };
 
-      try {
-        const res = await fetch(`${getApiBaseUrl()}/date/minutas.php?v=${Date.now()}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(datosMinuta)
-        });
+      const backendResult = await guardarMinutaEnBackend(datosMinuta);
+      if (backendResult.status === 'ok') {
+        enviarAlertaNotificación('Minuta Generada', 'Se guardó con éxito en la base de datos.');
+        return;
+      }
 
-        const text = await res.text();
-        let respuesta;
-        try {
-          respuesta = JSON.parse(text);
-        } catch (e) {
-          respuesta = { status: 'error', message: text };
-        }
-
-        if (respuesta.status === 'ok') {
-          enviarAlertaNotificación('Minuta Generada', 'Se guardó con éxito en la base de datos.');
-        } else {
-          console.error('Error al guardar la minuta:', respuesta.message || respuesta);
-          alert('No se pudo guardar la minuta en la base de datos.');
-        }
-      } catch (err) {
-        console.error('Error al guardar la minuta en MySQL:', err);
-        alert('No se pudo completar el envío de la minuta.');
+      const localResult = await guardarMinutaLocal(datosMinuta);
+      if (localResult.status === 'ok') {
+        console.warn('Backend no disponible. Se guardó la minuta localmente:', backendResult.message);
+        showToast('Se guardó localmente porque el backend no respondió.');
       }
     });
   }
@@ -867,7 +1490,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnCopy = document.getElementById('btn-copy');
   const btnDownloadMinutaImage = document.getElementById('btn-download-minuta-image');
+  const btnExportCsv = document.getElementById('btn-export-csv');
   const btnShare = document.getElementById('btn-share');
+
+  function exportMinutaAsCsv() {
+    const rows = [
+      ['Campo', 'Valor']
+    ];
+
+    const addRow = (label, value) => {
+      rows.push([label, String(value ?? '').replace(/\n/g, ' | ') ]);
+    };
+
+    addRow('Título superior', inputs.ciudad.value.trim());
+    addRow('Fecha', inputs.fecha.value ? new Date(`${inputs.fecha.value}T00:00:00`).toLocaleDateString('es-ES') : '');
+    addRow('Hora', inputs.hora.value);
+    addRow('Lugar', inputs.lugar.value.trim());
+    addRow('Informa', inputs.informa.value.trim());
+    addRow('Resumen', normalizeSummaryText(inputs.resumen.value.trim()));
+    addRow('Título inferior', inputs.lema.value.trim());
+
+    dynamicFieldsContainer?.querySelectorAll('.dynamic-field-row').forEach(row => {
+      const titleInput = row.querySelector('.extra-title');
+      const valInput = row.querySelector('.extra-value');
+      if (titleInput && valInput) {
+        const title = titleInput.value.trim();
+        const value = valInput.value.trim();
+        if (title || value) addRow(title || 'Campo adicional', value);
+      }
+    });
+
+    const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'minuta_general.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Archivo CSV descargado');
+  }
 
   if (btnCopy) {
     btnCopy.addEventListener('click', async () => {
@@ -893,6 +1555,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }).catch(() => {
         showToast('Error al generar la imagen.');
       });
+    });
+  }
+
+  if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+      const hasData = inputs.ciudad.value.trim() || inputs.resumen.value.trim() || inputs.informa.value.trim();
+      if (!hasData) {
+        showToast('No hay datos para exportar');
+        return;
+      }
+      exportMinutaAsCsv();
     });
   }
 
@@ -925,6 +1598,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function saveNotesToStorage() { localStorage.setItem('app_saved_notes', JSON.stringify(notes)); }
 
+  function createSavedTablePreview(tableData) {
+    const preview = document.createElement('div');
+    preview.className = 'saved-table-preview';
+    const table = document.createElement('table');
+    const head = document.createElement('thead');
+    const body = document.createElement('tbody');
+    const visibleColumns = tableData.columns.slice(0, 6);
+    const headerRow = document.createElement('tr');
+    ['ID', ...visibleColumns].forEach((column) => {
+      const cell = document.createElement('th');
+      cell.textContent = column;
+      headerRow.appendChild(cell);
+    });
+    head.appendChild(headerRow);
+
+    tableData.data.slice(0, 5).forEach((row, rowIndex) => {
+      const tableRow = document.createElement('tr');
+      [String(rowIndex).padStart(2, '0'), ...row.slice(0, 6)].forEach((value) => {
+        const cell = document.createElement('td');
+        cell.textContent = value || '...';
+        tableRow.appendChild(cell);
+      });
+      body.appendChild(tableRow);
+    });
+
+    table.append(head, body);
+    preview.appendChild(table);
+    return preview;
+  }
+
+  function exportTablePdf(tableData, fileName) {
+    if (!window.html2pdf) {
+      showToast('No se pudo preparar el PDF');
+      return;
+    }
+
+    const state = ensureTableData(JSON.parse(JSON.stringify(tableData)));
+    const exportSurface = document.createElement('div');
+    exportSurface.className = 'table-image-export-surface';
+    const title = document.createElement('h2');
+    title.textContent = state.title || 'TABLE DATE';
+    exportSurface.appendChild(title);
+
+    const table = document.createElement('table');
+    const headerRow = document.createElement('tr');
+    ['ID', ...state.columns].forEach((column) => {
+      const cell = document.createElement('th');
+      cell.textContent = column;
+      headerRow.appendChild(cell);
+    });
+    table.appendChild(headerRow);
+
+    state.data.forEach((row, rowIndex) => {
+      const tableRow = document.createElement('tr');
+      [String(rowIndex).padStart(2, '0'), ...row].forEach((value, colIndex) => {
+        const cell = document.createElement('td');
+        const styleKey = colIndex > 0 ? `${rowIndex}|${colIndex - 1}` : '';
+        if (styleKey && state.cellStyles && state.cellStyles[styleKey]) {
+          cell.style.backgroundColor = state.cellStyles[styleKey];
+        }
+        cell.textContent = value || '...';
+        tableRow.appendChild(cell);
+      });
+      table.appendChild(tableRow);
+    });
+
+    exportSurface.appendChild(table);
+    document.body.appendChild(exportSurface);
+    window.html2pdf().set({
+      margin: 0.35,
+      filename: `${fileName || 'tabla'}.pdf`,
+      image: { type: 'jpeg', quality: 0.96 },
+      html2canvas: { scale: 1.5, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    }).from(exportSurface).save().then(() => {
+      showToast('PDF descargado');
+    }).finally(() => exportSurface.remove());
+  }
+
   function renderNotesList() {
     if (!savedNotesList) return;
     savedNotesList.innerHTML = '';
@@ -938,18 +1690,21 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = 'note-card';
       card.id = `note-card-${index}`;
       const stickerClass = ['note-sticker-blue', 'note-sticker-pink', 'note-sticker-green'][index % 3];
+      const isSavedTable = note.type === 'table' && note.tableData;
       card.innerHTML = `
         <div class="note-sticker ${stickerClass}"></div>
         <div class="note-header">
-          <span>${note.title || 'Nota sin título'}</span>
+          <span>${isSavedTable ? 'Tabla: ' : ''}${note.title || 'Nota sin título'}</span>
           <span class="note-date">${note.date}</span>
         </div>
-        <div class="note-content">${note.body}</div>
+        <div class="note-content">${isSavedTable ? '' : note.body}</div>
         <div class="note-actions">
-          <button class="btn btn-secondary btn-export-img" data-index="${index}"><i data-lucide="image"></i> Exportar</button>
+          ${isSavedTable ? `<button class="btn btn-primary btn-export-table-note" data-index="${index}"><i data-lucide="file-spreadsheet"></i> Excel</button>` : ''}
+          <button class="btn btn-secondary btn-export-img" data-index="${index}"><i data-lucide="file-down"></i> ${isSavedTable ? 'PDF' : 'Exportar'}</button>
           <button class="btn btn-danger btn-delete-note" data-index="${index}"><i data-lucide="trash-2"></i> Eliminar</button>
         </div>
       `;
+      if (isSavedTable) card.querySelector('.note-content').appendChild(createSavedTablePreview(note.tableData));
       savedNotesList.appendChild(card);
     });
 
@@ -965,6 +1720,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-export-img').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = e.currentTarget.getAttribute('data-index');
+        const note = notes[Number(idx)];
+        if (note && note.type === 'table' && note.tableData) {
+          exportTablePdf(note.tableData, (note.title || 'tabla').replace(/[^a-zA-Z0-9_-]+/g, '_'));
+          return;
+        }
         const element = document.getElementById(`note-card-${idx}`);
         if (window.html2canvas && element) {
           window.html2canvas(element, { scale: 2 }).then(canvas => {
@@ -976,6 +1736,92 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+
+    document.querySelectorAll('.btn-export-table-note').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const note = notes[Number(e.currentTarget.getAttribute('data-index'))];
+        if (note && note.tableData) exportTableState(note.tableData, note.title || 'tabla');
+      });
+    });
+  }
+
+  const actaContent = document.getElementById('acta-content');
+  const actaStatus = document.getElementById('acta-status');
+  const btnActaDictate = document.getElementById('btn-acta-dictate');
+  let actaRecognition = null;
+
+  function generateActaDocx() {
+    if (!window.docx) {
+      showToast('No se pudo cargar el generador DOCX');
+      return;
+    }
+
+    const title = document.getElementById('acta-title')?.value.trim() || 'ACTA DE REUNIÓN';
+    const date = document.getElementById('acta-date')?.value || new Date().toISOString().slice(0, 10);
+    const place = document.getElementById('acta-place')?.value.trim() || 'No indicado';
+    const responsible = document.getElementById('acta-responsible')?.value.trim() || 'No indicado';
+    const participants = document.getElementById('acta-participants')?.value.trim() || 'No indicados';
+    const content = actaContent?.value.trim() || 'Sin contenido registrado.';
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx;
+    const paragraphs = content.split(/\n+/).filter(Boolean).map((line) => new Paragraph({ text: line, spacing: { after: 160 } }));
+    const documentFile = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({ text: title.toUpperCase(), heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 260 } }),
+          new Paragraph({ children: [new TextRun({ text: 'Fecha: ', bold: true }), new TextRun(date)] }),
+          new Paragraph({ children: [new TextRun({ text: 'Lugar: ', bold: true }), new TextRun(place)] }),
+          new Paragraph({ children: [new TextRun({ text: 'Responsable: ', bold: true }), new TextRun(responsible)] }),
+          new Paragraph({ children: [new TextRun({ text: 'Participantes: ', bold: true }), new TextRun(participants)], spacing: { after: 260 } }),
+          new Paragraph({ text: 'DESARROLLO Y ACUERDOS', heading: HeadingLevel.HEADING_2, spacing: { after: 160 } }),
+          ...paragraphs,
+          new Paragraph({ text: 'Firma del responsable: ________________________________', spacing: { before: 500 } })
+        ]
+      }]
+    });
+    const safeName = title.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_-]+/g, '_').replace(/^_+|_+$/g, '') || 'acta_reunion';
+    Packer.toBlob(documentFile).then((blob) => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${safeName}.docx`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast('Acta DOCX generada');
+    });
+  }
+
+  document.getElementById('btn-generate-acta')?.addEventListener('click', generateActaDocx);
+
+  if (btnActaDictate) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      btnActaDictate.disabled = true;
+      btnActaDictate.title = 'El navegador no admite dictado por voz';
+    } else {
+      actaRecognition = new SpeechRecognition();
+      actaRecognition.lang = 'es-ES';
+      actaRecognition.continuous = true;
+      actaRecognition.interimResults = false;
+      actaRecognition.onresult = (event) => {
+        const text = Array.from(event.results).slice(event.resultIndex).map((result) => result[0].transcript).join(' ');
+        if (actaContent) actaContent.value = `${actaContent.value.trim()} ${text}`.trim();
+      };
+      actaRecognition.onstart = () => {
+        btnActaDictate.classList.add('is-recording');
+        btnActaDictate.innerHTML = '<i data-lucide="square"></i> Detener dictado';
+        refreshIcons();
+        if (actaStatus) actaStatus.textContent = 'Dictado activo. Hable para agregar contenido.';
+      };
+      actaRecognition.onend = () => {
+        btnActaDictate.classList.remove('is-recording');
+        btnActaDictate.innerHTML = '<i data-lucide="mic"></i> Grabar / dictar';
+        refreshIcons();
+      };
+      btnActaDictate.addEventListener('click', () => {
+        if (btnActaDictate.classList.contains('is-recording')) actaRecognition.stop();
+        else actaRecognition.start();
+      });
+    }
   }
 
   async function guardarNotaEnBD(title, body) {
