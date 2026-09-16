@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" class="table-view-mode">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Constructor de tablas de CreateMinut">
+  <title>Tabla | CreateMinut</title>
+  <link rel="stylesheet" href="dgn/global.css">
+  <link rel="icon" href="icon.png" type="image/png">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <header class="app-header no-print">
+    <div class="header-brand">
+      <h1 class="logo" style="display: flex; align-items: center; justify-content: center;"><span></span><img src="icon.png" width="32" height="32" alt="Logo"></h1>
+    </div>
+    <nav class="main-nav mobile-nav">
+      <a class="nav-item active" href="index.html"><i data-lucide="file-text"></i><span>Inicio</span></a>
+      <a class="nav-item" href="index.html#view-bloc"><i data-lucide="edit-3"></i><span>Notas</span></a>
+      <a class="nav-item" href="index.html#view-formato"><i data-lucide="layout"></i><span>Formato</span></a>
+      <a class="nav-item" href="index.html#view-ajustes"><i data-lucide="settings"></i><span>Ajustes</span></a>
+    </nav>
+    <button id="hamburger-btn" class="icon-btn" aria-label="Menú desplegable"><i data-lucide="menu"></i></button>
+  </header>
+
+  <aside id="side-menu" class="side-menu no-print">
+    <div class="side-menu-header"><h3>Menú</h3></div>
+    <div class="sidebar-body">
+      <nav class="main-nav desktop-nav">
+        <a class="nav-item active" href="index.html"><i data-lucide="file-text"></i><span>Inicio</span></a>
+        <a class="nav-item" href="index.html#view-bloc"><i data-lucide="edit-3"></i><span>Bloc</span></a>
+        <a class="nav-item" href="index.html#view-formato"><i data-lucide="layout"></i><span>Formato</span></a>
+        <a class="nav-item" href="index.html#view-ajustes"><i data-lucide="settings"></i><span>Ajustes</span></a>
+      </nav>
+      <div class="menu-section-title">Sistema</div>
+      <ul class="side-menu-links">
+        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
+        <li><a href="#" id="btn-open-templates"><i data-lucide="layout"></i> Modelados</a></li>
+        <li><a href="#" id="btn-share-app-link"><i data-lucide="share-2"></i> Compartir App</a></li>
+        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
+        <li><a href="https://wa.me/584264214126" target="_blank" rel="noopener"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
+        <li><a href="file/CM.apk" class="btn-descarga" download="file/CM.apk"><i data-lucide="download"></i> Descargar La App</a></li>
+        <li><a href="index.html#view-ajustes"><i data-lucide="settings"></i> Cambiar tema</a></li>
+      </ul>
+    </div>
+  </aside>
+  <div id="overlay" class="overlay no-print"></div>
+
+  <main id="exc-table-page" class="app-content">
+    <section class="tab-view active">
+      <div class="form-container">
+        <div id="table-builder-panel" class="card no-print" style="display: block;">
+          <div class="table-builder-header" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <button type="button" id="btn-back-to-home" class="btn btn-secondary table-icon-btn" title="Regresar" aria-label="Regresar"><i data-lucide="arrow-left"></i></button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+              <button type="button" id="btn-save-table" class="btn btn-secondary table-icon-btn" title="Guardar tabla en Notas" aria-label="Guardar tabla en Notas"><i data-lucide="save"></i></button>
+              <button type="button" id="btn-export-table" class="btn btn-primary table-icon-btn" title="Descargar Excel" aria-label="Descargar Excel"><i data-lucide="file-spreadsheet"></i></button>
+            </div>
+          </div>
+          <div class="table-search-bar"><i data-lucide="search" aria-hidden="true"></i><input id="table-search-input" type="search" placeholder="Buscar en la tabla..." aria-label="Buscar en la tabla"></div>
+          <div class="table-scroll" style="overflow: auto; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);">
+            <table id="dynamic-data-table" style="width: 100%; min-width: 700px; border-collapse: collapse;"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+        <nav id="table-edit-toolbar" class="table-edit-toolbar no-print" aria-label="Opciones de edición">
+          <label class="table-toolbar-control" for="table-data-type"><span>Tipo de dato</span><select id="table-data-type"><option value="general">General</option><option value="date">Fecha</option><option value="number">Número</option><option value="text">Texto</option><option value="time">Hora</option></select></label>
+          <button type="button" id="btn-merge-cells" class="table-toolbar-button" title="Combinar o descombinar celdas seleccionadas" aria-label="Combinar o descombinar celdas seleccionadas"><i data-lucide="combine"></i><span>Combinar</span></button>
+          <button type="button" id="btn-formula" class="table-toolbar-button" title="Insertar fórmula" aria-label="Insertar fórmula"><i data-lucide="sigma"></i><span>Fórmula</span></button>
+        </nav>
+        <div id="formula-modal" class="modal-overlay" aria-hidden="true">
+          <div class="modal-content formula-dialog" role="dialog" aria-modal="true" aria-labelledby="formula-modal-title">
+            <button type="button" id="btn-close-formula" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+            <h2 id="formula-modal-title">Insertar fórmula</h2>
+            <p class="formula-help">Usa referencias como A00, B00 o B03. Ejemplo: ==(B03 + B04)</p>
+            <label class="formula-field" for="formula-input">Fórmula</label>
+            <input id="formula-input" type="text" placeholder="==(B03 + B04)" autocomplete="off">
+            <p id="formula-error" class="formula-error" role="alert"></p>
+            <div class="modal-actions-center formula-actions"><button type="button" id="btn-apply-formula" class="btn btn-primary">Aplicar</button><button type="button" id="btn-cancel-formula" class="btn btn-secondary">Cancelar</button></div>
+          </div>
+        </div>
+        <div id="reset-table-modal" class="modal-overlay" style="z-index: 700;">
+          <div class="modal-content reset-confirmation-dialog" style="max-width: 420px; text-align: center;">
+            <h3 style="margin-bottom: 18px;">¿Está seguro que desea resetear la data?</h3>
+            <div class="modal-actions-center" style="margin-top: 12px;"><button type="button" id="btn-reset-confirm-yes" class="btn btn-primary">Sí</button><button type="button" id="btn-reset-confirm-no" class="btn btn-secondary">No</button></div>
+          </div>
+        </div>
+        <div id="table-context-menu" class="table-context-menu hidden" style="position: fixed; z-index: 600; min-width: 180px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 18px 40px rgba(0,0,0,0.22); padding: 8px; display: none;">
+          <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="insert"><i data-lucide="plus"></i> Agregar ▸</button><div class="table-submenu hidden" data-submenu-panel="insert"><button type="button" class="table-menu-action" data-action="add-row"><i data-lucide="rows-3"></i> Fila</button><button type="button" class="table-menu-action" data-action="add-column"><i data-lucide="columns-3"></i> Columna</button></div></div>
+          <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="clear"><i data-lucide="eraser"></i> Limpiar ▸</button><div class="table-submenu hidden" data-submenu-panel="clear"><button type="button" class="table-menu-action" data-action="clear-row">Limpiar fila</button><button type="button" class="table-menu-action" data-action="clear-column">Limpiar columna</button><button type="button" class="table-menu-action" data-action="clear-data">Limpiar toda la data</button></div></div>
+          <button type="button" class="table-menu-action table-menu-main" data-action="delete"><i data-lucide="trash-2"></i> Eliminar</button>
+          <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="mark">Marcar ▸</button><div class="table-submenu hidden" data-submenu-panel="mark"><button type="button" class="table-menu-action" data-action="mark-yellow">Amarillo</button><button type="button" class="table-menu-action" data-action="mark-green">Verde</button><button type="button" class="table-menu-action" data-action="mark-red">Rojo</button><button type="button" class="table-menu-action" data-action="mark-orange">Naranja</button><button type="button" class="table-menu-action" data-action="mark-fuchsia">Fuchsia</button><button type="button" class="table-menu-action" data-action="mark-purple">Morado</button><button type="button" class="table-menu-action" data-action="mark-blue">Azul</button><button type="button" class="table-menu-action" data-action="mark-brown">Marrón</button></div></div>
+          <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="move">Mover ▸</button><div class="table-submenu hidden" data-submenu-panel="move"><button type="button" class="table-menu-action" data-action="move-up">Arriba</button><button type="button" class="table-menu-action" data-action="move-down">Abajo</button><button type="button" class="table-menu-action" data-action="move-left">Izquierda</button><button type="button" class="table-menu-action" data-action="move-right">Derecha</button></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal-about" class="modal-overlay"><div class="modal-content"><button id="btn-close-about" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>Sobre la Aplicación</h2><div class="about-text"><p>Desarrollada por DXon para tu gestión eficiente.</p><p>Versión: 2.3, puede ser actualizada en cualquier momento.</p></div></div></div>
+  <div id="modal-templates" class="modal-overlay"><div class="modal-content"><button id="btn-close-templates" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>Modelados de Minutas</h2><div class="templates-list"><p>Los modelos de minutas están disponibles desde la pantalla de Inicio.</p><a class="btn btn-secondary" href="index.html">Ir a Inicio</a></div></div></div>
+  <div id="modal-protocols" class="modal-overlay"><div class="modal-content"><button id="btn-close-protocols" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>PROTOCOLO</h2><div class="about-text"><ol style="padding-left: 20px;"><li>Mantener la confidencialidad de la información.</li><li>Utilizar la aplicación para fines legales y éticos.</li><li>El usuario es responsable del contenido generado.</li></ol></div></div></div>
+  <div id="toast-message" class="toast-message hidden"></div>
+  <script src="date/app.js?v=202608082000"></script>
+</body>
+</html>
