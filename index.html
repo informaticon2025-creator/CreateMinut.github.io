@@ -135,21 +135,13 @@
 
         <div id="table-builder-panel" class="card no-print" style="display: none;">
           <div class="table-builder-header" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-            <button type="button" id="btn-back-to-home" class="btn btn-secondary" style="min-width: 120px;">
-              <i data-lucide="arrow-left"></i> Regresar
+            <button type="button" id="btn-back-to-home" class="btn btn-secondary table-icon-btn" title="Regresar" aria-label="Regresar">
+              <i data-lucide="arrow-left"></i>
             </button>
 
-            <div style="flex: 1; min-width: 220px;">
-              <label for="table-name-input" style="display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--secondary-color);">Nombre de la tabla</label>
-              <input id="table-name-input" type="text" value="TABLE DATE" placeholder="Nombre de la tabla" style="min-height: 42px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); font-weight: 700;" />
-            </div>
-
             <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-              <button type="button" id="btn-add-table-column" class="btn btn-secondary table-icon-btn" title="Agregar columna" aria-label="Agregar columna"><i data-lucide="columns-3"></i><span class="btn-label">Columnas</span></button>
-              <button type="button" id="btn-add-table-row" class="btn btn-secondary table-icon-btn" title="Agregar fila" aria-label="Agregar fila"><i data-lucide="rows-3"></i><span class="btn-label">Filas</span></button>
-              <button type="button" id="btn-save-table" class="btn btn-secondary table-icon-btn" title="Guardar tabla en Notas" aria-label="Guardar tabla en Notas"><i data-lucide="save"></i><span class="btn-label">Guardar</span></button>
-              <button type="button" id="btn-export-table" class="btn btn-primary table-icon-btn" title="Descargar Excel" aria-label="Descargar Excel"><i data-lucide="file-spreadsheet"></i><span class="btn-label">Excel</span></button>
-              <button type="button" id="btn-reset-table" class="btn btn-danger table-icon-btn" title="Restablecer tabla" aria-label="Restablecer tabla"><i data-lucide="rotate-ccw"></i><span class="btn-label">Limpiar</span></button>
+              <button type="button" id="btn-save-table" class="btn btn-secondary table-icon-btn" title="Guardar tabla en Notas" aria-label="Guardar tabla en Notas"><i data-lucide="save"></i></button>
+              <button type="button" id="btn-export-table" class="btn btn-primary table-icon-btn" title="Abrir tabla" aria-label="Abrir tabla"><i data-lucide="file-spreadsheet"></i></button>
             </div>
           </div>
 
@@ -158,11 +150,27 @@
             <input id="table-search-input" type="search" placeholder="Buscar en la tabla..." aria-label="Buscar en la tabla">
           </div>
 
-          <div class="table-scroll" style="overflow: auto; border: 1px solid var(--border-color); border-radius: 12px; background: #d7efc1; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);">
-            <table id="dynamic-data-table" style="width: 100%; min-width: 700px; border-collapse: collapse; background: #d7efc1; color: #1e2d17;">
+          <div class="table-scroll" style="overflow: auto; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);">
+            <table id="dynamic-data-table" style="width: 100%; min-width: 700px; border-collapse: collapse;">
               <thead></thead>
               <tbody></tbody>
             </table>
+          </div>
+        </div>
+        <nav id="table-edit-toolbar" class="table-edit-toolbar no-print" aria-label="Opciones de edición">
+          <label class="table-toolbar-control" for="table-data-type"><span>Tipo de dato</span><select id="table-data-type"><option value="general">General</option><option value="date">Fecha</option><option value="number">Número</option><option value="text">Texto</option><option value="time">Hora</option></select></label>
+          <button type="button" id="btn-merge-cells" class="table-toolbar-button" title="Combinar o descombinar celdas seleccionadas" aria-label="Combinar o descombinar celdas seleccionadas"><i data-lucide="combine"></i><span>Combinar</span></button>
+          <button type="button" id="btn-formula" class="table-toolbar-button" title="Insertar fórmula" aria-label="Insertar fórmula"><i data-lucide="sigma"></i><span>Fórmula</span></button>
+        </nav>
+        <div id="formula-modal" class="modal-overlay" aria-hidden="true">
+          <div class="modal-content formula-dialog" role="dialog" aria-modal="true" aria-labelledby="formula-modal-title">
+            <button type="button" id="btn-close-formula" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+            <h2 id="formula-modal-title">Insertar fórmula</h2>
+            <p class="formula-help">Usa referencias como A00, B00 o B03. Ejemplo: ==(B03 + B04)</p>
+            <label class="formula-field" for="formula-input">Fórmula</label>
+            <input id="formula-input" type="text" placeholder="==(B03 + B04)" autocomplete="off">
+            <p id="formula-error" class="formula-error" role="alert"></p>
+            <div class="modal-actions-center formula-actions"><button type="button" id="btn-apply-formula" class="btn btn-primary">Aplicar</button><button type="button" id="btn-cancel-formula" class="btn btn-secondary">Cancelar</button></div>
           </div>
         </div>
 
@@ -205,6 +213,14 @@
         </div>
 
         <div id="table-context-menu" class="table-context-menu hidden" style="position: fixed; z-index: 600; min-width: 180px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 18px 40px rgba(0,0,0,0.22); padding: 8px; display: none;">
+          <div class="table-menu-group" style="position: relative;">
+            <button type="button" class="table-menu-main" data-submenu="insert"><i data-lucide="plus"></i> Agregar ▸</button>
+            <div class="table-submenu hidden" data-submenu-panel="insert"><button type="button" class="table-menu-action" data-action="add-row"><i data-lucide="rows-3"></i> Fila</button><button type="button" class="table-menu-action" data-action="add-column"><i data-lucide="columns-3"></i> Columna</button></div>
+          </div>
+          <div class="table-menu-group" style="position: relative;">
+            <button type="button" class="table-menu-main" data-submenu="clear"><i data-lucide="eraser"></i> Limpiar ▸</button>
+            <div class="table-submenu hidden" data-submenu-panel="clear"><button type="button" class="table-menu-action" data-action="clear-row">Limpiar fila</button><button type="button" class="table-menu-action" data-action="clear-column">Limpiar columna</button><button type="button" class="table-menu-action" data-action="clear-data">Limpiar toda la data</button></div>
+          </div>
           <button type="button" class="table-menu-action table-menu-main" data-action="delete" style="display: block; width: 100%; text-align: left; background: transparent; border: none; color: var(--text-color); padding: 8px 10px; border-radius: 8px; cursor: pointer;">Eliminar</button>
 
           <div class="table-menu-group" style="position: relative;">
@@ -412,13 +428,14 @@
         <div class="setting-item">
           <span>Seleccionar Tema</span>
           <select id="theme-select">
-            <option value="theme-tecno">Tecno / Cyber</option>
+            <option value="theme-tecno">Predeterminado</option>
             <option value="theme-robotico">Robótico / Industrial</option>
             <option value="theme-femenino">Femenino / Rosa Neón</option>
             <option value="theme-matrix">Matrix / Terminal</option>
-            <option value="theme-vscode">VS Code / Dev</option>
+            <option value="theme-vscode">Oscuro</option>
             <option value="theme-retro">Retro 90s</option>
             <option value="theme-minimal">Minimalista Claro</option>
+            <option value="theme-excel">Excel Clásico</option>
             <option value="theme-whatsapp">WhatsApp</option>
             <option value="theme-facebook">Facebook</option>
             <option value="theme-xp">Windows XP</option>
