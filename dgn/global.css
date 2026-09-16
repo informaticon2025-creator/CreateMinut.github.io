@@ -3,16 +3,16 @@
    ========================================================= */
 
 :root, body.theme-tecno {
-  --bg-color: #07111f;
-  --card-bg: #0f1726;
-  --text-color: #dbeafe;
-  --border-color: #243b5e;
-  --primary-color: #38bdf8;
-  --secondary-color: #8ec5ff;
-  --danger-color: #f87171;
+  --bg-color: #0d1b2a;
+  --card-bg: #ffffff;
+  --text-color: #111827;
+  --border-color: #c7d2df;
+  --primary-color: #3f6f9f;
+  --secondary-color: #28527a;
+  --danger-color: #b42318;
   --whatsapp-color: #34d399;
-  --input-bg: #111c31;
-  --input-text: #e2f2ff;
+  --input-bg: #ffffff;
+  --input-text: #111827;
 }
 
 body.theme-robotico {
@@ -55,16 +55,16 @@ body.theme-matrix {
 }
 
 body.theme-vscode {
-  --bg-color: #1e1e1e;
-  --card-bg: #252526;
-  --text-color: #d4d4d4;
-  --border-color: #3e3e42;
-  --primary-color: #007acc;
-  --secondary-color: #858585;
+  --bg-color: #090909;
+  --card-bg: #242424;
+  --text-color: #f3f4f6;
+  --border-color: #3f3f46;
+  --primary-color: #4f83c2;
+  --secondary-color: #343b45;
   --danger-color: #f48771;
   --whatsapp-color: #4ec9b0;
-  --input-bg: #3c3c3c;
-  --input-text: #ce9178;
+  --input-bg: #171717;
+  --input-text: #f3f4f6;
 }
 
 body.theme-retro {
@@ -91,6 +91,19 @@ body.theme-minimal {
   --whatsapp-color: #198754;
   --input-bg: #ffffff;
   --input-text: #212529;
+}
+
+body.theme-excel {
+  --bg-color: #f3f6f9;
+  --card-bg: #ffffff;
+  --text-color: #1f2937;
+  --border-color: #cbd5e1;
+  --primary-color: #217346;
+  --secondary-color: #4b5563;
+  --danger-color: #c53030;
+  --whatsapp-color: #16a34a;
+  --input-bg: #ffffff;
+  --input-text: #1f2937;
 }
 
 body.font-xxs { font-size: 12px; }
@@ -572,6 +585,23 @@ input, textarea, select {
   opacity: 0.8;
 }
 
+body.theme-tecno .home-option-btn {
+  background: #ffffff;
+  border-color: #c7d2df;
+  color: #111827;
+  box-shadow: 0 8px 18px rgba(38, 43, 49, 0.08);
+}
+
+body.theme-tecno .home-option-btn:hover {
+  background: #f1f6fb;
+  border-color: #3f6f9f;
+}
+
+body.theme-tecno .home-option-btn i {
+  background: #e5eef7;
+  color: #28527a;
+}
+
 .btn-primary { background: var(--primary-color); color: #fff; }
 .btn-secondary { background: var(--secondary-color); color: #fff; }
 .btn-danger { background: var(--danger-color); color: #fff; }
@@ -644,6 +674,7 @@ input, textarea, select {
 }
 
 .table-builder-header {
+  position: relative;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -658,7 +689,7 @@ input, textarea, select {
   height: 100%;
   overflow: auto;
   border-radius: 12px;
-  background: var(--input-bg);
+  background: var(--table-body-bg, var(--input-bg));
   border: 1px solid var(--border-color);
 }
 
@@ -666,8 +697,105 @@ input, textarea, select {
   width: 100%;
   min-width: 760px;
   border-collapse: collapse;
-  background: transparent;
+  background: var(--table-body-bg, transparent);
+  color: var(--table-text, var(--text-color));
+}
+
+#dynamic-data-table thead th,
+#dynamic-data-table tbody > tr > td:first-child {
+  cursor: pointer;
+}
+
+.table-edit-toolbar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 250;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 8px 14px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+}
+
+html.table-view-mode .table-edit-toolbar {
+  display: flex;
+}
+
+.table-toolbar-control,
+.table-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
   color: var(--text-color);
+}
+
+.table-toolbar-control span {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.table-toolbar-control select,
+.table-toolbar-button {
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-color);
+}
+
+.table-toolbar-button {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.table-toolbar-button:hover {
+  border-color: var(--primary-color);
+}
+
+.formula-dialog {
+  max-width: 460px;
+}
+
+.formula-help {
+  margin: 8px 0 16px;
+  color: var(--secondary-color);
+  font-size: 0.9rem;
+}
+
+.formula-field {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+#formula-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-family: monospace;
+}
+
+.formula-error {
+  min-height: 20px;
+  margin-top: 8px;
+  color: var(--danger-color);
+  font-size: 0.85rem;
+}
+
+.formula-actions {
+  margin-top: 4px;
 }
 
 @media (max-width: 767px) {
@@ -678,21 +806,62 @@ input, textarea, select {
 
   .table-builder-header {
     gap: 8px;
+    min-height: 42px;
+    padding: 4px 4px 8px 48px;
   }
 
-  .table-builder-header .btn {
-    flex: 1 1 calc(50% - 8px);
+  #btn-back-to-home {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 38px;
+    min-width: 38px !important;
+    height: 38px;
+    padding: 8px;
     justify-content: center;
   }
 
-  .table-icon-btn .btn-label {
-    display: inline;
-    font-size: 0.78rem;
+  .table-builder-header > div {
+    margin-left: auto;
   }
 
   .table-icon-btn {
-    gap: 4px;
-    padding-inline: 6px;
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 8px;
+    justify-content: center;
+  }
+
+  .table-icon-btn .btn-label { display: none; }
+
+  .table-edit-toolbar {
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+  }
+
+  .table-toolbar-control {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .table-toolbar-control span {
+    display: none;
+  }
+
+  .table-toolbar-control select {
+    width: 100%;
+  }
+
+  .table-toolbar-button span {
+    display: none;
+  }
+
+  .table-toolbar-button {
+    width: 42px;
+    justify-content: center;
+    padding: 8px;
   }
 }
 
