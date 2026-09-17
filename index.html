@@ -28,12 +28,16 @@
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7504777499352723"
      crossorigin="anonymous"></script>
 </head>
 <body>
+  <div id="page-loading" class="page-loading" role="status" aria-live="polite" aria-label="Cargando">
+    <div class="page-loading-document" aria-hidden="true">
+      <svg viewBox="0 0 64 64" role="img"><path d="M16 6h23l13 13v39H16z"/><path d="M39 6v14h13M25 34h18M25 44h18M25 24h7"/></svg>
+    </div>
+  </div>
 
   <!-- Header Superior -->
   <header class="app-header no-print">
@@ -92,15 +96,15 @@
       <div class="menu-section-title">Sistema</div>
 
       <ul class="side-menu-links">
-        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
         <li><a href="#" id="btn-open-templates"><i data-lucide="layout"></i> Modelados</a></li>
         <li><a href="#" id="btn-share-app-link"><i data-lucide="share-2"></i> Compartir App</a></li>
-        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
-        <li><a href="https://wa.me/584264214126" target="_blank"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
 <li class"movilAppk"><a href="file/CM.apk" class="btn-descarga" download="file/CM.apk">
     Descargar La App
 </a>
 </li>
+        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
+        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
+        <li><a href="https://wa.me/584264214126" target="_blank"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
       </ul>
     </div>
   </aside>
@@ -113,7 +117,7 @@
     <section id="view-inicio" class="tab-view active">
       <div class="form-container">
         <div id="home-type-selector" class="card no-print" style="margin-bottom: 20px; padding: 18px; border-radius: 18px;">
-          <h2 style="margin-bottom: 14px;">Tipo de documento</h2>
+          <h2 style="margin-bottom: 14px;">Funciones DOC</h2>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
             <button type="button" class="btn btn-secondary home-option-btn" data-home-template="table" style="text-align: left; display: block;">
               <i data-lucide="table-properties"></i>
@@ -140,15 +144,13 @@
             </button>
 
             <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+              <button type="button" id="btn-open-table-search" class="btn btn-secondary table-icon-btn" title="Buscar en la tabla" aria-label="Buscar en la tabla" aria-expanded="false"><i data-lucide="search"></i></button>
               <button type="button" id="btn-save-table" class="btn btn-secondary table-icon-btn" title="Guardar tabla en Notas" aria-label="Guardar tabla en Notas"><i data-lucide="save"></i></button>
               <button type="button" id="btn-export-table" class="btn btn-primary table-icon-btn" title="Abrir tabla" aria-label="Abrir tabla"><i data-lucide="file-spreadsheet"></i></button>
             </div>
           </div>
 
-          <div class="table-search-bar">
-            <i data-lucide="search" aria-hidden="true"></i>
-            <input id="table-search-input" type="search" placeholder="Buscar en la tabla..." aria-label="Buscar en la tabla">
-          </div>
+          <div id="table-search-popover" class="table-search-popover" role="search" aria-hidden="true"><input id="table-search-input" type="search" placeholder="Buscar..." aria-label="Buscar en la tabla"></div>
 
           <div class="table-scroll" style="overflow: auto; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);">
             <table id="dynamic-data-table" style="width: 100%; min-width: 700px; border-collapse: collapse;">
@@ -159,8 +161,11 @@
         </div>
         <nav id="table-edit-toolbar" class="table-edit-toolbar no-print" aria-label="Opciones de edición">
           <label class="table-toolbar-control" for="table-data-type"><span>Tipo de dato</span><select id="table-data-type"><option value="general">General</option><option value="date">Fecha</option><option value="number">Número</option><option value="text">Texto</option><option value="time">Hora</option></select></label>
+          <button type="button" id="btn-share-table" class="table-toolbar-button" title="Compartir tabla como PNG" aria-label="Compartir tabla como PNG"><i data-lucide="share-2"></i><span>PNG</span></button>
+          <button type="button" id="btn-import-table-image" class="table-toolbar-button" title="Insertar imagen en la celda seleccionada" aria-label="Insertar imagen"><i data-lucide="image-plus"></i><span>Imagen</span></button>
           <button type="button" id="btn-merge-cells" class="table-toolbar-button" title="Combinar o descombinar celdas seleccionadas" aria-label="Combinar o descombinar celdas seleccionadas"><i data-lucide="combine"></i><span>Combinar</span></button>
           <button type="button" id="btn-formula" class="table-toolbar-button" title="Insertar fórmula" aria-label="Insertar fórmula"><i data-lucide="sigma"></i><span>Fórmula</span></button>
+          <input id="table-image-input" type="file" accept="image/*" hidden>
         </nav>
         <div id="formula-modal" class="modal-overlay" aria-hidden="true">
           <div class="modal-content formula-dialog" role="dialog" aria-modal="true" aria-labelledby="formula-modal-title">
@@ -216,6 +221,11 @@
           <div class="table-menu-group" style="position: relative;">
             <button type="button" class="table-menu-main" data-submenu="insert"><i data-lucide="plus"></i> Agregar ▸</button>
             <div class="table-submenu hidden" data-submenu-panel="insert"><button type="button" class="table-menu-action" data-action="add-row"><i data-lucide="rows-3"></i> Fila</button><button type="button" class="table-menu-action" data-action="add-column"><i data-lucide="columns-3"></i> Columna</button></div>
+          </div>
+
+          <div id="table-image-position-group" class="table-menu-group hidden" style="position: relative;">
+            <button type="button" class="table-menu-main" data-submenu="image-position">Posición de imagen ▸</button>
+            <div class="table-submenu hidden" data-submenu-panel="image-position"><button type="button" class="table-menu-action" data-action="image-relative">Relativa</button><button type="button" class="table-menu-action" data-action="image-absolute">Absoluta</button></div>
           </div>
           <div class="table-menu-group" style="position: relative;">
             <button type="button" class="table-menu-main" data-submenu="clear"><i data-lucide="eraser"></i> Limpiar ▸</button>
@@ -341,10 +351,10 @@
     <section id="view-formato" class="tab-view">
       <div class="form-container">
         <form id="formato-form" class="card no-print">
-          <h2>Personalizado</h2>
+          <h2>Minuta SMS</h2>
 
           <p style="margin-bottom: 12px; color: var(--secondary-color); font-size: 0.95rem;">
-            Personaliza tus minutas
+            Crea y envia minutas por SMS
           </p>
 
           <div class="form-row">
@@ -478,11 +488,9 @@
       <button id="btn-close-modal" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
       <div id="minuta-output" class="minuta-display"></div>
       <div class="modal-actions-center">
-        <button id="btn-copy" class="btn btn-primary"><i data-lucide="copy"></i> Copiar</button>
-        <button id="btn-download-minuta-image" class="btn btn-secondary"><i data-lucide="image"></i> Imagen</button>
-        <button id="btn-export-csv" class="btn btn-secondary"><i data-lucide="file-spreadsheet"></i> Excel</button>
-        <button id="btn-save-minuta-note" class="btn btn-secondary"><i data-lucide="save"></i> Guardar</button>
-        <button id="btn-share" class="btn btn-secondary"><i data-lucide="share-2"></i> Compartir</button>
+        <button id="btn-save-minuta-note" class="btn btn-primary"><i data-lucide="save"></i> Guardar en Notas</button>
+        <button id="btn-share" class="btn btn-secondary"><i data-lucide="share-2"></i> Compartir texto</button>
+        <button id="btn-copy" class="btn btn-secondary"><i data-lucide="copy"></i> Copiar texto</button>
       </div>
     </div>
   </div>
@@ -527,49 +535,90 @@
   </div>
 
   <div id="modal-templates" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content master-pro-modal">
       <button id="btn-close-templates" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
-      <h2>Modelados de Minutas</h2>
+      <div class="master-pro-heading">
+        <div>
+          <span class="master-pro-kicker"><i data-lucide="crown"></i> MASTER PRO</span>
+          <h2>Modelados de Minutas</h2>
+          <p>Accede a modelos profesionales y desbloquea más formatos para tu trabajo.</p>
+        </div>
+        <span class="master-pro-badge"><i data-lucide="lock-keyhole"></i> PREMIUM</span>
+      </div>
       <div class="templates-list">
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Policial / Seguridad</h4>
           <p class="template-snippet">CARACAS - CPNB<br>FECHA: 08/08/2026 | HORA: 14:30<br>LUGAR: PUNTO DE CONTROL VIAL<br>INFORMA: OFICIAL ROMERO<br>RESUMEN: Inspección preventiva...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="police">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="police"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Técnico / Informática</h4>
           <p class="template-snippet">DEPARTAMENTO DE TI<br>FECHA: 08/08/2026 | HORA: 09:15<br>LUGAR: SERVIDOR CENTRAL<br>INFORMA: TEC. SISTEMAS<br>RESUMEN: Mantenimiento SSD...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="tech">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="tech"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Empresarial</h4>
           <p class="template-snippet">OFICINA CENTRAL<br>FECHA: 08/08/2026 | HORA: 11:00<br>LUGAR: SALA DE CONFERENCIAS<br>INFORMA: GERENCIA<br>RESUMEN: Seguimiento de proyectos...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="business">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="business"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Administración / Empresa</h4>
           <p class="template-snippet">GERENCIA ADMINISTRATIVA<br>FECHA: 10/08/2026 | HORA: 08:30<br>LUGAR: OFICINA CENTRAL<br>INFORMA: COORDINADOR ADMINISTRATIVO<br>RESUMEN: Seguimiento de pagos y control documental...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="admin">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="admin"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Recursos Humanos</h4>
           <p class="template-snippet">DEPARTAMENTO DE RRHH<br>FECHA: 11/08/2026 | HORA: 09:00<br>LUGAR: ÁREA DE TALENTO HUMANO<br>INFORMA: ANALISTA RRHH<br>RESUMEN: Evaluación de contrataciones y seguimiento de personal...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="rrhh">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="rrhh"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Operaciones / Producción</h4>
           <p class="template-snippet">ÁREA DE OPERACIONES<br>FECHA: 12/08/2026 | HORA: 07:45<br>LUGAR: PLANTA DE PRODUCCIÓN<br>INFORMA: SUPERVISOR OPERATIVO<br>RESUMEN: Control de procesos y cumplimiento de metas diarias...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="operations">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="operations"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Seguridad / Protección</h4>
           <p class="template-snippet">SEGURIDAD INTERNA<br>FECHA: 13/08/2026 | HORA: 16:00<br>LUGAR: PUNTO DE CONTROL<br>INFORMA: ENCARGADO DE SEGURIDAD<br>RESUMEN: Monitoreo preventivo y revisión de protocolos...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="safety">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="safety"><i data-lucide="lock"></i> Desbloquear</button>
         </div>
-        <div class="template-card">
+        <div class="template-card master-pro-card">
+          <span class="master-pro-card-label"><i data-lucide="lock-keyhole"></i> MASTER PRO</span>
           <h4>Modelo Educación / Formación</h4>
           <p class="template-snippet">DEPARTAMENTO ACADÉMICO<br>FECHA: 14/08/2026 | HORA: 10:15<br>LUGAR: AULA MAGNA<br>INFORMA: DOCENTE RESPONSABLE<br>RESUMEN: Revisión de contenidos y seguimiento de actividades pedagógicas...</p>
-          <button class="btn btn-secondary btn-use-template" data-type="education">Cargar</button>
+          <button class="btn master-pro-unlock-btn btn-use-template" data-type="education"><i data-lucide="lock"></i> Desbloquear</button>
+        </div>
+      </div>
+      <div class="master-pro-footer"><i data-lucide="sparkles"></i><span>Hay más modelos premium en camino. Activa Master Pro para usarlos.</span></div>
+    </div>
+  </div>
+
+  <div id="modal-document-templates" class="modal-overlay">
+    <div class="modal-content">
+      <button id="btn-close-document-templates" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2>Modelos de documento</h2>
+      <p>Elige una plantilla para cargarla en su herramienta correspondiente.</p>
+      <div class="templates-list">
+        <div class="template-card">
+          <h4>DATABASE Personal</h4>
+          <p class="template-snippet">Tabla de personal con Nombre, Apellido, DNI, Teléfono, Dirección y Nivel académico.</p>
+          <button class="btn btn-secondary btn-use-document-template" data-type="database-personal">Usar plantilla</button>
+        </div>
+        <div class="template-card">
+          <h4>Acta de reunión empresarial</h4>
+          <p class="template-snippet">Acta con datos de reunión, responsable, participantes y contenido inicial.</p>
+          <button class="btn btn-secondary btn-use-document-template" data-type="acta-personal">Usar plantilla</button>
+        </div>
+        <div class="template-card">
+          <h4>Formato de seguridad</h4>
+          <p class="template-snippet">Reporte con cuadrante de paz, relevo de guardia, jefe de servicio y personal participante.</p>
+          <button class="btn btn-secondary btn-use-document-template" data-type="formato-seguridad">Usar plantilla</button>
         </div>
       </div>
     </div>
@@ -588,6 +637,15 @@
           <li><strong>Protocolo de Responsabilidad:</strong> El usuario es responsable del contenido generado y compartido mediante la aplicación.</li>
         </ol>
       </div>
+    </div>
+  </div>
+  <div id="table-name-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-content table-name-dialog" role="dialog" aria-modal="true" aria-labelledby="table-name-title">
+      <button type="button" id="btn-close-table-name" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+      <h2 id="table-name-title">Guardar tabla</h2>
+      <label for="table-name-input">Nombre de la tabla</label>
+      <input id="table-name-input" type="text" placeholder="TABLE DATE" autocomplete="off">
+      <div class="modal-actions-center table-name-actions"><button type="button" id="btn-confirm-table-name" class="btn btn-primary">Guardar</button><button type="button" id="btn-cancel-table-name" class="btn btn-secondary">Cancelar</button></div>
     </div>
   </div>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9018141094142531"
