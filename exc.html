@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="dgn/global.css">
   <link rel="icon" href="icon.png" type="image/png">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <header class="app-header no-print">
@@ -34,13 +35,13 @@
       </nav>
       <div class="menu-section-title">Sistema</div>
       <ul class="side-menu-links">
-        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
         <li><a href="#" id="btn-open-templates"><i data-lucide="layout"></i> Modelados</a></li>
         <li><a href="#" id="btn-share-app-link"><i data-lucide="share-2"></i> Compartir App</a></li>
-        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
-        <li><a href="https://wa.me/584264214126" target="_blank" rel="noopener"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
         <li><a href="file/CM.apk" class="btn-descarga" download="file/CM.apk"><i data-lucide="download"></i> Descargar La App</a></li>
         <li><a href="index.html#view-ajustes"><i data-lucide="settings"></i> Cambiar tema</a></li>
+        <li><a href="#" id="btn-about-app"><i data-lucide="info"></i> Sobre la App</a></li>
+        <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
+        <li><a href="https://wa.me/584264214126" target="_blank" rel="noopener"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
       </ul>
     </div>
   </aside>
@@ -53,19 +54,23 @@
           <div class="table-builder-header" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
             <button type="button" id="btn-back-to-home" class="btn btn-secondary table-icon-btn" title="Regresar" aria-label="Regresar"><i data-lucide="arrow-left"></i></button>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+              <button type="button" id="btn-open-table-search" class="btn btn-secondary table-icon-btn" title="Buscar en la tabla" aria-label="Buscar en la tabla" aria-expanded="false"><i data-lucide="search"></i></button>
               <button type="button" id="btn-save-table" class="btn btn-secondary table-icon-btn" title="Guardar tabla en Notas" aria-label="Guardar tabla en Notas"><i data-lucide="save"></i></button>
               <button type="button" id="btn-export-table" class="btn btn-primary table-icon-btn" title="Descargar Excel" aria-label="Descargar Excel"><i data-lucide="file-spreadsheet"></i></button>
             </div>
           </div>
-          <div class="table-search-bar"><i data-lucide="search" aria-hidden="true"></i><input id="table-search-input" type="search" placeholder="Buscar en la tabla..." aria-label="Buscar en la tabla"></div>
+          <div id="table-search-popover" class="table-search-popover" role="search" aria-hidden="true"><input id="table-search-input" type="search" placeholder="Buscar..." aria-label="Buscar en la tabla"></div>
           <div class="table-scroll" style="overflow: auto; border: 1px solid var(--border-color); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);">
             <table id="dynamic-data-table" style="width: 100%; min-width: 700px; border-collapse: collapse;"><thead></thead><tbody></tbody></table>
           </div>
         </div>
         <nav id="table-edit-toolbar" class="table-edit-toolbar no-print" aria-label="Opciones de edición">
           <label class="table-toolbar-control" for="table-data-type"><span>Tipo de dato</span><select id="table-data-type"><option value="general">General</option><option value="date">Fecha</option><option value="number">Número</option><option value="text">Texto</option><option value="time">Hora</option></select></label>
+              <button type="button" id="btn-share-table" class="table-toolbar-button" title="Compartir tabla como PNG" aria-label="Compartir tabla como PNG"><i data-lucide="share-2"></i><span>PNG</span></button>
+          <button type="button" id="btn-import-table-image" class="table-toolbar-button" title="Insertar imagen en la celda seleccionada" aria-label="Insertar imagen"><i data-lucide="image-plus"></i><span>Imagen</span></button>
           <button type="button" id="btn-merge-cells" class="table-toolbar-button" title="Combinar o descombinar celdas seleccionadas" aria-label="Combinar o descombinar celdas seleccionadas"><i data-lucide="combine"></i><span>Combinar</span></button>
           <button type="button" id="btn-formula" class="table-toolbar-button" title="Insertar fórmula" aria-label="Insertar fórmula"><i data-lucide="sigma"></i><span>Fórmula</span></button>
+          <input id="table-image-input" type="file" accept="image/*" hidden>
         </nav>
         <div id="formula-modal" class="modal-overlay" aria-hidden="true">
           <div class="modal-content formula-dialog" role="dialog" aria-modal="true" aria-labelledby="formula-modal-title">
@@ -90,6 +95,7 @@
           <button type="button" class="table-menu-action table-menu-main" data-action="delete"><i data-lucide="trash-2"></i> Eliminar</button>
           <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="mark">Marcar ▸</button><div class="table-submenu hidden" data-submenu-panel="mark"><button type="button" class="table-menu-action" data-action="mark-yellow">Amarillo</button><button type="button" class="table-menu-action" data-action="mark-green">Verde</button><button type="button" class="table-menu-action" data-action="mark-red">Rojo</button><button type="button" class="table-menu-action" data-action="mark-orange">Naranja</button><button type="button" class="table-menu-action" data-action="mark-fuchsia">Fuchsia</button><button type="button" class="table-menu-action" data-action="mark-purple">Morado</button><button type="button" class="table-menu-action" data-action="mark-blue">Azul</button><button type="button" class="table-menu-action" data-action="mark-brown">Marrón</button></div></div>
           <div class="table-menu-group" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="move">Mover ▸</button><div class="table-submenu hidden" data-submenu-panel="move"><button type="button" class="table-menu-action" data-action="move-up">Arriba</button><button type="button" class="table-menu-action" data-action="move-down">Abajo</button><button type="button" class="table-menu-action" data-action="move-left">Izquierda</button><button type="button" class="table-menu-action" data-action="move-right">Derecha</button></div></div>
+          <div id="table-image-position-group" class="table-menu-group hidden" style="position: relative;"><button type="button" class="table-menu-main" data-submenu="image-position">Posición de imagen ▸</button><div class="table-submenu hidden" data-submenu-panel="image-position"><button type="button" class="table-menu-action" data-action="image-relative">Relativa</button><button type="button" class="table-menu-action" data-action="image-absolute">Absoluta</button></div></div>
         </div>
       </div>
     </section>
@@ -98,7 +104,13 @@
   <div id="modal-about" class="modal-overlay"><div class="modal-content"><button id="btn-close-about" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>Sobre la Aplicación</h2><div class="about-text"><p>Desarrollada por DXon para tu gestión eficiente.</p><p>Versión: 2.3, puede ser actualizada en cualquier momento.</p></div></div></div>
   <div id="modal-templates" class="modal-overlay"><div class="modal-content"><button id="btn-close-templates" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>Modelados de Minutas</h2><div class="templates-list"><p>Los modelos de minutas están disponibles desde la pantalla de Inicio.</p><a class="btn btn-secondary" href="index.html">Ir a Inicio</a></div></div></div>
   <div id="modal-protocols" class="modal-overlay"><div class="modal-content"><button id="btn-close-protocols" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2>PROTOCOLO</h2><div class="about-text"><ol style="padding-left: 20px;"><li>Mantener la confidencialidad de la información.</li><li>Utilizar la aplicación para fines legales y éticos.</li><li>El usuario es responsable del contenido generado.</li></ol></div></div></div>
+  <div id="table-name-modal" class="modal-overlay" aria-hidden="true"><div class="modal-content table-name-dialog" role="dialog" aria-modal="true" aria-labelledby="table-name-title"><button type="button" id="btn-close-table-name" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button><h2 id="table-name-title">Guardar tabla</h2><label for="table-name-input">Nombre de la tabla</label><input id="table-name-input" type="text" placeholder="TABLE DATE" autocomplete="off"><div class="modal-actions-center table-name-actions"><button type="button" id="btn-confirm-table-name" class="btn btn-primary">Guardar</button><button type="button" id="btn-cancel-table-name" class="btn btn-secondary">Cancelar</button></div></div></div>
   <div id="toast-message" class="toast-message hidden"></div>
   <script src="date/app.js?v=202608082000"></script>
 </body>
+  <div id="page-loading" class="page-loading" role="status" aria-live="polite" aria-label="Cargando">
+    <div class="page-loading-document" aria-hidden="true">
+      <svg viewBox="0 0 64 64" role="img"><path d="M16 6h23l13 13v39H16z"/><path d="M39 6v14h13M25 34h18M25 44h18M25 24h7"/></svg>
+    </div>
+  </div>
 </html>
