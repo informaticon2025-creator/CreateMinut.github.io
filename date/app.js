@@ -276,6 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpenTemplates = document.getElementById('btn-open-templates');
   const btnCloseTemplates = document.getElementById('btn-close-templates');
   const btnCloseDocumentTemplates = document.getElementById('btn-close-document-templates');
+  const modalDownloads = document.getElementById('modal-downloads');
+  const btnOpenDownloads = document.getElementById('btn-open-downloads');
+  const btnCloseDownloads = document.getElementById('btn-close-downloads');
   if (btnOpenTemplates && modalTemplates) {
     btnOpenTemplates.addEventListener('click', (e) => {
       e.preventDefault(); toggleMenu(); modalTemplates.classList.add('open');
@@ -286,6 +289,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (btnCloseDocumentTemplates && modalDocumentTemplates) {
     btnCloseDocumentTemplates.addEventListener('click', () => modalDocumentTemplates.classList.remove('open'));
+  }
+  if (btnOpenDownloads && modalDownloads) {
+    btnOpenDownloads.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleMenu();
+      modalDownloads.classList.add('open');
+    });
+  }
+  if (btnCloseDownloads && modalDownloads) {
+    btnCloseDownloads.addEventListener('click', () => modalDownloads.classList.remove('open'));
   }
 
   const modalProtocols = document.getElementById('modal-protocols');
