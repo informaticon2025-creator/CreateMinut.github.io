@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Descarga CreateMinut para Android y Windows.">
+	<title>Descargas | CreateMinut</title>
+	<link rel="stylesheet" href="../dgn/global.css">
+	<link rel="icon" href="../icon.png" type="image/png">
+	<script src="https://unpkg.com/lucide@latest"></script>
+	<style>
+		.downloads-page {
+			max-width: 920px;
+			margin: 0 auto;
+		}
+
+		.downloads-heading {
+			margin-bottom: 20px;
+		}
+
+		.downloads-heading p {
+			color: var(--secondary-color);
+			margin-top: 8px;
+		}
+
+		.downloads-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			gap: 16px;
+		}
+
+		.download-card {
+			display: flex;
+			flex-direction: column;
+			gap: 14px;
+			min-height: 250px;
+		}
+
+		.download-card-icon {
+			display: grid;
+			place-items: center;
+			width: 54px;
+			height: 54px;
+			border-radius: 14px;
+			color: var(--primary-color);
+			background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+		}
+
+		.download-card-icon svg {
+			width: 28px;
+			height: 28px;
+		}
+
+		.download-card p {
+			color: var(--secondary-color);
+			line-height: 1.5;
+		}
+
+		.download-card .btn {
+			margin-top: auto;
+			display: inline-flex;
+			justify-content: center;
+			align-items: center;
+			gap: 8px;
+			text-decoration: none;
+		}
+
+		.download-note {
+			margin-top: 18px;
+			color: var(--secondary-color);
+			font-size: 0.9rem;
+		}
+	</style>
+</head>
+<body>
+	<header class="app-header no-print">
+		<div class="header-brand">
+			<a href="../index.html" aria-label="Volver a CreateMinut">
+				<h1 class="logo"><img src="../icon.png" width="32" height="32" alt="Logo de CreateMinut"></h1>
+			</a>
+		</div>
+		<nav class="main-nav mobile-nav">
+			<a class="nav-item active" href="down.html"><i data-lucide="download"></i><span>Descargas</span></a>
+			<a class="nav-item" href="../index.html"><i data-lucide="file-text"></i><span>Inicio</span></a>
+		</nav>
+		<a class="icon-btn" href="../index.html" aria-label="Volver a Inicio" title="Volver a Inicio"><i data-lucide="arrow-left"></i></a>
+	</header>
+
+	<main class="app-content">
+		<section class="downloads-page">
+			<div class="card downloads-heading">
+				<h2>Descargar CreateMinut</h2>
+				<p>Elige la versión compatible con tu dispositivo para trabajar con CreateMinut sin conexión.</p>
+			</div>
+
+			<div class="downloads-grid">
+				<article class="card download-card">
+					<div class="download-card-icon" aria-hidden="true"><i data-lucide="smartphone"></i></div>
+					<div>
+						<h3>Versión Android</h3>
+						<p>Instala CreateMinut en teléfonos y tabletas Android.</p>
+					</div>
+					<a class="btn btn-primary" href="dowload/createminut.apk" download="createminut.apk"><i data-lucide="download"></i> Descargar APK</a>
+				</article>
+
+				<article class="card download-card">
+					<div class="download-card-icon" aria-hidden="true"><i data-lucide="monitor"></i></div>
+					<div>
+						<h3>Versión Windows</h3>
+						<p>Descarga la aplicación de escritorio para equipos Windows.</p>
+					</div>
+					<a class="btn btn-primary" href="dowload/CreateMinut.exe" download="CreateMinut.exe"><i data-lucide="download"></i> Descargar EXE</a>
+				</article>
+			</div>
+
+			<p class="download-note"><i data-lucide="shield-check"></i> Descarga siempre desde esta página para obtener los instaladores oficiales.</p>
+		</section>
+	</main>
+
+	<script>
+		const themes = ['theme-tecno', 'theme-robotico', 'theme-femenino', 'theme-matrix', 'theme-vscode', 'theme-retro', 'theme-minimal', 'theme-excel', 'theme-whatsapp', 'theme-facebook', 'theme-xp'];
+		const fontSizes = ['font-xxs', 'font-xs', 'font-sm', 'font-lg', 'font-xl'];
+		const savedTheme = localStorage.getItem('app_selected_theme');
+		const savedFontSize = localStorage.getItem('app_font_size');
+		document.body.classList.add(themes.includes(savedTheme) ? savedTheme : 'theme-retro');
+		document.body.classList.add(fontSizes.includes(savedFontSize) ? savedFontSize : 'font-sm');
+		lucide.createIcons();
+	</script>
+</body>
+</html>
