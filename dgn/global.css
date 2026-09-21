@@ -1336,6 +1336,84 @@ html.table-view-mode body {
   flex-wrap: wrap;
 }
 
+.downloads-modal-content {
+  max-width: 760px;
+}
+
+.downloads-modal-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-right: 28px;
+  margin-bottom: 20px;
+}
+
+.downloads-modal-heading p,
+.download-modal-card p,
+.downloads-modal-note {
+  color: var(--secondary-color);
+  line-height: 1.5;
+}
+
+.downloads-modal-heading p {
+  margin-top: 7px;
+}
+
+.downloads-modal-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  color: var(--primary-color);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.downloads-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.download-modal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+}
+
+.downloads-modal-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.download-modal-card .btn {
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.downloads-modal-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .downloads-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .toast-message {
   position: fixed;
   bottom: 18px;
