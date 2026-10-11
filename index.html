@@ -6,13 +6,13 @@
   <meta name="description" content="Automatiza tus tareas y trabajos. No compliques tus trabajos con CreateMinut.">
   <meta name="author" content="CreateMinut">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="CreateMinut | Automatiza tus tareas y trabajos">
+  <meta property="og:title" content="CreateMinut | Crea minutas y reportes profesionales">
   <meta property="og:description" content="Automatiza tus tareas y trabajos. No compliques tus trabajos con CreateMinut.">
   <meta property="og:image" content="icon.png">
   <meta property="og:image:alt" content="Logo de CreateMinut">
   <meta property="og:site_name" content="CreateMinut">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="CreateMinut | Automatiza tus tareas y trabajos">
+  <meta name="twitter:title" content="CreateMinut | Crea minutas y reportes profesionales">
   <meta name="twitter:description" content="Automatiza tus tareas y trabajos. No compliques tus trabajos con CreateMinut.">
   <meta name="twitter:image" content="icon.png">
   <meta name="twitter:image:alt" content="Logo de CreateMinut">
@@ -22,12 +22,14 @@
 <meta name="google-site-verification" content="FPJ7DWXR-Ht6Dc1VeQiMV5NpFECglWUrWluNlbSEbIM" />
 <meta name="google-adsense-account" content="ca-pub-9018141094142531">
 
-  <title>CreatorMinut</title>
+  <title>CreateMinut | Crea minutas y reportes profesionales</title>
   <link rel="stylesheet" href="dgn/global.css">
   <link rel="icon" href="icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7504777499352723"
      crossorigin="anonymous"></script>
@@ -42,7 +44,7 @@
   <!-- Header Superior -->
   <header class="app-header no-print">
     <div class="header-brand">
-      <h1 class="logo" style="display: flex; align-items: center; justify-content: center;"><span></span><img src="icon.png" width="32" height="32" alt="Logo"></h1>
+      <div class="logo" style="display: flex; align-items: center; justify-content: center;"><span></span><img src="icon.png" width="32" height="32" alt="Logo de CreatorMinut"></div>
     </div>
 
     <nav class="main-nav mobile-nav">
@@ -52,11 +54,11 @@
       </button>
       <button class="nav-item" data-tab="view-bloc">
         <i data-lucide="edit-3"></i>
-        <span>Notas</span>
+        <span>Guardados</span>
       </button>
       <button class="nav-item" data-tab="view-formato">
         <i data-lucide="layout"></i>
-        <span>Formato</span>
+        <span>Minuta</span>
       </button>
       <button class="nav-item" data-tab="view-ajustes">
         <i data-lucide="settings"></i>
@@ -103,6 +105,16 @@
         <li><a href="#" id="btn-open-protocols"><i data-lucide="shield-alert"></i> Protocolos</a></li>
         <li><a href="https://wa.me/584264214126" target="_blank"><i data-lucide="message-square"></i> Soporte WhatsApp</a></li>
       </ul>
+      <section class="social-share-widget" aria-labelledby="social-share-title">
+        <h4 id="social-share-title">Comparte CreatorMinut</h4>
+        <p>Invita a otras personas a crear minutas y reportes profesionales.</p>
+        <div class="social-share-links">
+          <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fcreate-minut-github-io.vercel.app%2F" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a href="https://twitter.com/intent/tweet?text=Crea%20minutas%20y%20reportes%20profesionales%20con%20CreatorMinut.&amp;url=https%3A%2F%2Fcreate-minut-github-io.vercel.app%2F" target="_blank" rel="noopener noreferrer">X</a>
+          <a href="https://api.whatsapp.com/send?text=Crea%20minutas%20y%20reportes%20profesionales%20con%20CreatorMinut%3A%20https%3A%2F%2Fcreate-minut-github-io.vercel.app%2F" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a href="https://t.me/share/url?url=https%3A%2F%2Fcreate-minut-github-io.vercel.app%2F&amp;text=Crea%20minutas%20y%20reportes%20profesionales%20con%20CreatorMinut." target="_blank" rel="noopener noreferrer">Telegram</a>
+        </div>
+      </section>
     </div>
   </aside>
   <div id="overlay" class="overlay no-print"></div>
@@ -162,8 +174,24 @@
           <button type="button" id="btn-import-table-image" class="table-toolbar-button" title="Insertar imagen en la celda seleccionada" aria-label="Insertar imagen"><i data-lucide="image-plus"></i><span>Imagen</span></button>
           <button type="button" id="btn-merge-cells" class="table-toolbar-button" title="Combinar o descombinar celdas seleccionadas" aria-label="Combinar o descombinar celdas seleccionadas"><i data-lucide="combine"></i><span>Combinar</span></button>
           <button type="button" id="btn-formula" class="table-toolbar-button" title="Insertar fórmula" aria-label="Insertar fórmula"><i data-lucide="sigma"></i><span>Fórmula</span></button>
+          <button type="button" id="btn-table-chart" class="table-toolbar-button table-chart-button" title="Crear gráfica con las celdas seleccionadas" aria-label="Crear gráfica"><i data-lucide="chart-no-axes-column-increasing"></i></button>
           <input id="table-image-input" type="file" accept="image/*" hidden>
         </nav>
+        <div id="table-chart-modal" class="modal-overlay" aria-hidden="true">
+          <div class="modal-content table-chart-dialog" role="dialog" aria-modal="true" aria-labelledby="table-chart-title">
+            <button type="button" id="btn-close-table-chart" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
+            <h2 id="table-chart-title">Gráfica de la tabla</h2>
+            <label class="table-chart-type" for="table-chart-type">Tipo de gráfica
+              <select id="table-chart-type"><option value="bar">Columnas</option><option value="horizontalBar">Barras horizontales</option><option value="line">Líneas</option><option value="area">Área</option><option value="pie">Circular</option><option value="doughnut">Anillo</option><option value="polarArea">Polar</option><option value="radar">Radar</option></select>
+            </label>
+            <label class="table-chart-legend-color" for="table-chart-legend-color">Color del texto de leyenda<input id="table-chart-legend-color" type="color" value="#475569"></label>
+            <div id="table-chart-legend-controls" class="table-chart-legend-controls" aria-label="Editar nombres y colores de leyenda"></div>
+            <label class="table-chart-target" for="table-chart-target-cell">Celda para colocar la gráfica<select id="table-chart-target-cell"></select></label>
+            <p id="table-chart-message" class="table-chart-message" role="status" aria-live="polite"></p>
+            <div class="table-chart-canvas-wrap"><canvas id="table-chart-canvas" aria-label="Gráfica de las celdas seleccionadas" role="img"></canvas></div>
+            <div class="modal-actions-center table-chart-actions"><button type="button" id="btn-insert-table-chart" class="btn btn-primary"><i data-lucide="move-down-right"></i> Colocar en celda</button></div>
+          </div>
+        </div>
         <div id="formula-modal" class="modal-overlay" aria-hidden="true">
           <div class="modal-content formula-dialog" role="dialog" aria-modal="true" aria-labelledby="formula-modal-title">
             <button type="button" id="btn-close-formula" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
@@ -480,13 +508,26 @@
   </main>
 
   <!-- MODALES -->
+  <div id="modal-welcome" class="modal-overlay welcome-modal no-print" aria-hidden="true">
+    <div class="modal-content welcome-modal-content" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <button type="button" id="btn-close-welcome" class="modal-close-btn" aria-label="Cerrar ventana de bienvenida"><i data-lucide="x"></i></button>
+      <img class="welcome-modal-image" src="icon.png" width="180" height="180" alt="Ilustración de un teléfono y un documento de minuta">
+      <h1 id="welcome-title">Crea minutas y reportes profesionales con CreatorMinut</h1>
+      <p>Organiza tus notas, prepara documentos y convierte tus datos en reportes desde un solo lugar.</p>
+      <div class="welcome-download-actions">
+        <a class="btn btn-primary welcome-download-mobile" href="file/dowload/createminut.apk" download="createminut.apk" type="application/vnd.android.package-archive"><i data-lucide="download"></i> Descargar APK</a>
+        <a class="btn btn-primary welcome-download-desktop" href="file/dowload/CreateMinut.exe" download="CreateMinut.exe" type="application/octet-stream"><i data-lucide="download"></i> Descargar EXE para escritorio</a>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-preview" class="modal-overlay">
     <div class="modal-content">
       <button id="btn-close-modal" class="modal-close-btn" aria-label="Cerrar"><i data-lucide="x"></i></button>
       <div id="minuta-output" class="minuta-display"></div>
       <div class="modal-actions-center">
-        <button id="btn-save-minuta-note" class="btn btn-primary"><i data-lucide="save"></i> Guardar en Notas</button>
-        <button id="btn-share" class="btn btn-secondary"><i data-lucide="share-2"></i> Compartir texto</button>
+        <button id="btn-save-minuta-note" class="btn btn-primary"><i data-lucide="save"></i> Guardar</button>
+        <button id="btn-share" class="btn btn-secondary"><i data-lucide="share-2"></i> Compartir</button>
         <button id="btn-copy" class="btn btn-secondary"><i data-lucide="copy"></i> Copiar texto</button>
       </div>
     </div>
@@ -617,6 +658,10 @@
           <p class="template-snippet">Reporte con cuadrante de paz, relevo de guardia, jefe de servicio y personal participante.</p>
           <button class="btn btn-secondary btn-use-document-template" data-type="formato-seguridad">Usar plantilla</button>
         </div>
+        <h3 class="table-template-section-title">Plantillas Excel para empresas</h3>
+        <div class="template-card"><h4>Ventas y facturación</h4><p class="template-snippet">Ventas mensuales, metas, gastos y unidades, con datos listos para crear gráficas.</p><button type="button" class="btn btn-secondary btn-use-table-template" data-table-template="sales">Usar plantilla</button></div>
+        <div class="template-card"><h4>Presupuesto y gastos</h4><p class="template-snippet">Presupuesto aprobado, ejecución, saldo y proveedores por área.</p><button type="button" class="btn btn-secondary btn-use-table-template" data-table-template="finance">Usar plantilla</button></div>
+        <div class="template-card"><h4>Personal y nómina</h4><p class="template-snippet">Empleados, vacantes, ausencias y nómina mensual por departamento.</p><button type="button" class="btn btn-secondary btn-use-table-template" data-table-template="staff">Usar plantilla</button></div>
       </div>
     </div>
   </div>
@@ -642,7 +687,7 @@
           <span class="downloads-modal-platform"><i data-lucide="monitor"></i> Windows</span>
           <h3>Aplicación de escritorio</h3>
           <p>Usa CreateMinut en tu equipo Windows con el instalador EXE.</p>
-          <a class="btn btn-primary" href="file/dowload/CreateMinut.exe" download="CreateMinut.exe"><i data-lucide="download"></i> Descargar EXE</a>
+          <a class="btn btn-primary" href="file/dowload/CreateMinut.exe" download="CreateMinut.exe" type="application/octet-stream"><i data-lucide="download"></i> Descargar EXE</a>
         </article>
       </div>
       <p class="downloads-modal-note"><i data-lucide="shield-check"></i> Descarga los instaladores oficiales desde esta ventana.</p>
@@ -685,6 +730,6 @@
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
 
-  <script src="date/app.js?v=202608082000"></script>
+  <script src="date/app.js?v=202609260001"></script>
 </body>
 </html>
