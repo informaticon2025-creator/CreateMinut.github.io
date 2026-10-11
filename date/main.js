@@ -1,4 +1,4 @@
-﻿// Listas globales que se llenarán dinámicamente con los archivos de texto
+// Listas globales que se llenarán dinámicamente con los archivos de texto
 let listaLibros = [];
 let listaProyectos = [];
 
