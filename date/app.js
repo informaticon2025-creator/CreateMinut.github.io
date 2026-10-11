@@ -259,6 +259,41 @@ document.addEventListener('DOMContentLoaded', () => {
   if (overlay) overlay.addEventListener('click', toggleMenu);
 
   // --- MODALES ---
+  const modalWelcome = document.getElementById('modal-welcome');
+  const btnCloseWelcome = document.getElementById('btn-close-welcome');
+  const welcomeSeenKey = 'createMinut_welcome_seen';
+  let showWelcome = true;
+  if (modalWelcome) {
+    try {
+      showWelcome = localStorage.getItem(welcomeSeenKey) !== 'true';
+      if (showWelcome) localStorage.setItem(welcomeSeenKey, 'true');
+    } catch (error) {
+      console.error('No se pudo guardar el estado de la ventana de bienvenida:', error);
+    }
+    if (showWelcome) {
+      modalWelcome.classList.add('open');
+      modalWelcome.setAttribute('aria-hidden', 'false');
+    }
+  }
+  function closeWelcomeModal() {
+    if (!modalWelcome) return;
+    modalWelcome.classList.remove('open');
+    modalWelcome.setAttribute('aria-hidden', 'true');
+  }
+  if (modalWelcome) {
+    modalWelcome.addEventListener('click', (event) => {
+      if (event.target === modalWelcome) closeWelcomeModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modalWelcome.classList.contains('open')) {
+        closeWelcomeModal();
+      }
+    });
+  }
+  if (btnCloseWelcome) {
+    btnCloseWelcome.addEventListener('click', closeWelcomeModal);
+  }
+
   const modalAbout = document.getElementById('modal-about');
   const btnAboutApp = document.getElementById('btn-about-app');
   const btnCloseAbout = document.getElementById('btn-close-about');
@@ -531,7 +566,10 @@ document.addEventListener('DOMContentLoaded', () => {
       data: Array.from({ length: tableDefaults.rows }, () => Array(tableDefaults.columns.length).fill('')),
       columnTypes: Array(tableDefaults.columns.length).fill('general'),
       cellTypes: {},
-        cellSizes: {},
+      cellSizes: {},
+      cellStyles: {},
+      images: {},
+      charts: {},
       formulas: {},
       merges: []
     };
@@ -692,6 +730,8 @@ document.addEventListener('DOMContentLoaded', () => {
     state.cellTypes = state.cellTypes || {};
     state.cellSizes = state.cellSizes || {};
     state.images = state.images || {};
+    state.cellStyles = state.cellStyles || {};
+    state.charts = state.charts || {};
     state.formulas = state.formulas || {};
     state.merges = Array.isArray(state.merges) ? state.merges : [];
 
@@ -737,6 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
       contextMenu.classList.toggle('submenus-left', opensLeft);
     }
 
+    table.querySelectorAll('.table-cell-chart-canvas').forEach((canvas) => {
+      if (window.Chart?.getChart(canvas)) window.Chart.getChart(canvas).destroy();
+    });
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
@@ -769,7 +812,32 @@ document.addEventListener('DOMContentLoaded', () => {
       th.style.color = palette.indexText;
       th.style.fontWeight = '700';
       th.style.fontSize = '0.72rem';
-      th.textContent = index === state.columns.length - 1 ? '...' : getColumnLabel(index);
+      th.classList.add('table-column-header');
+      const columnLabel = getColumnLabel(index);
+      const columnIndex = document.createElement('span');
+      columnIndex.className = 'table-column-index';
+      columnIndex.textContent = columnLabel;
+      const columnName = document.createElement('input');
+      columnName.className = 'table-column-name';
+      columnName.type = 'text';
+      columnName.value = String(col || '');
+      columnName.placeholder = `Nombre de ${columnLabel}`;
+      columnName.setAttribute('aria-label', `Nombre de columna ${columnLabel}`);
+      columnName.title = `Editar nombre de columna ${columnLabel}`;
+      columnName.addEventListener('click', (event) => {
+        event.stopPropagation();
+        selectCompleteColumn(index, th);
+      });
+      columnName.addEventListener('change', () => {
+        state.columns[index] = columnName.value.trim();
+        saveTableState(state);
+        columnName.value = state.columns[index];
+      });
+      columnName.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') columnName.blur();
+      });
+      th.append(columnIndex, columnName);
+      th.title = `Columna ${columnLabel}`;
       headerRow.appendChild(th);
     });
 
@@ -864,6 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       recalculateFormulas(state);
       saveTableState(state);
+      syncLinkedTableCharts(state);
     }
 
     function selectCompleteColumn(colIndex, targetCell) {
@@ -887,9 +956,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     headerRow.querySelectorAll('th').forEach((header, headerIndex) => {
-      if (headerIndex === 0) return;
+      if (headerIndex === 0 || headerIndex === state.columns.length + 1) return;
       header.title = `Seleccionar columna ${getColumnLabel(headerIndex - 1)}`;
-      header.addEventListener('click', () => selectCompleteColumn(headerIndex - 1, header));
+      header.addEventListener('click', (event) => {
+        if (event.target.closest('.table-column-name')) return;
+        selectCompleteColumn(headerIndex - 1, header);
+      });
     });
 
     const mergeMap = {};
@@ -907,6 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       idCell.style.border = `1px solid ${palette.border}`;
       idCell.style.padding = '4px 3px';
       idCell.style.width = '28px';
+      idCell.style.height = '44px';
       idCell.style.background = palette.body;
       idCell.style.color = palette.indexText;
       idCell.style.fontWeight = '700';
@@ -1006,6 +1079,7 @@ document.addEventListener('DOMContentLoaded', () => {
           state.data[rowIndex][colIndex] = e.target.value;
           recalculateFormulas(state);
           saveTableState(state);
+          syncLinkedTableCharts(state);
           const formulaValuesAfter = Object.keys(state.formulas).map((key) => `${key}:${state.data[key.split('|')[0]][key.split('|')[1]]}`);
           if (formulaValuesBefore.join('|') !== formulaValuesAfter.join('|')) renderTableBuilder();
         });
@@ -1118,6 +1192,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         td.appendChild(input);
+        const chartKey = `${rowIndex}|${colIndex}`;
+        const linkedChart = state.charts[chartKey];
+        if (linkedChart) {
+          const size = state.cellSizes[chartKey] || {};
+          td.classList.add('table-chart-cell');
+          td.style.width = `${Math.max(360, Number(size.width) || 0)}px`;
+          td.style.minWidth = `${Math.max(360, Number(size.width) || 0)}px`;
+          td.style.height = `${Math.max(260, Number(size.height) || 0)}px`;
+          td.style.verticalAlign = 'top';
+          const chartWrap = document.createElement('div');
+          chartWrap.className = 'table-cell-chart-wrap';
+          const chartCanvas = document.createElement('canvas');
+          chartCanvas.className = 'table-cell-chart-canvas';
+          chartCanvas.dataset.chartCellKey = chartKey;
+          chartCanvas.setAttribute('aria-label', `Gráfica vinculada en ${getCellReference(rowIndex, colIndex)}`);
+          chartCanvas.setAttribute('role', 'img');
+          chartWrap.appendChild(chartCanvas);
+          td.appendChild(chartWrap);
+        }
         tr.appendChild(td);
       });
 
@@ -1136,6 +1229,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       tr.appendChild(actionTd);
       tbody.appendChild(tr);
+      tr.querySelectorAll('.table-cell-chart-canvas').forEach((canvas) => {
+        const cell = canvas.closest('td');
+        renderLinkedTableChart(canvas, state.charts[`${cell.dataset.rowIndex}|${cell.dataset.colIndex}`], state);
+      });
     });
 
     if (state.data.length === 0) {
@@ -1182,11 +1279,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = button.dataset.action;
     const state = getTableState();
     state.images = state.images || {};
+    state.charts = state.charts || {};
     const selectedCells = tableSelection && Array.isArray(tableSelection.cells) ? tableSelection.cells : [];
     const clearCellContent = (rowIndex, colIndex) => {
       state.data[rowIndex][colIndex] = '';
       delete state.formulas[`${rowIndex}|${colIndex}`];
       delete state.images[`${rowIndex}|${colIndex}`];
+      delete state.charts[`${rowIndex}|${colIndex}`];
     };
 
     if (action === 'image-relative' || action === 'image-absolute') {
@@ -1234,6 +1333,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.data = state.data.map((row) => row.map(() => ''));
       state.cellStyles = {};
       state.images = {};
+      state.charts = {};
       state.formulas = {};
       saveTableState(state);
       renderTableBuilder();
@@ -1247,6 +1347,9 @@ document.addEventListener('DOMContentLoaded', () => {
         state.data[rowIndex] = state.data[rowIndex].map(() => '');
         Object.keys(state.images || {}).forEach((key) => {
           if (key.startsWith(`${rowIndex}|`)) delete state.images[key];
+        });
+        Object.keys(state.charts || {}).forEach((key) => {
+          if (key.startsWith(`${rowIndex}|`)) delete state.charts[key];
         });
       });
       Object.keys(state.cellStyles || {}).forEach((key) => {
@@ -1266,6 +1369,9 @@ document.addEventListener('DOMContentLoaded', () => {
       state.data.forEach((row) => { selectedColumns.forEach((colIndex) => { row[colIndex] = ''; }); });
       Object.keys(state.images || {}).forEach((key) => {
         if (selectedColumns.some((colIndex) => key.endsWith(`|${colIndex}`))) delete state.images[key];
+      });
+      Object.keys(state.charts || {}).forEach((key) => {
+        if (selectedColumns.some((colIndex) => key.endsWith(`|${colIndex}`))) delete state.charts[key];
       });
       Object.keys(state.cellStyles || {}).forEach((key) => {
         if (selectedColumns.some((colIndex) => key.endsWith(`|${colIndex}`))) delete state.cellStyles[key];
@@ -1482,17 +1588,503 @@ document.addEventListener('DOMContentLoaded', () => {
     return [];
   }
 
+  let tableChart = null;
+  const tableChartModal = document.getElementById('table-chart-modal');
+  const tableChartCanvas = document.getElementById('table-chart-canvas');
+  const tableChartMessage = document.getElementById('table-chart-message');
+  const tableChartType = document.getElementById('table-chart-type');
+  const tableChartLegendColor = document.getElementById('table-chart-legend-color');
+  const tableChartLegendControls = document.getElementById('table-chart-legend-controls');
+  const tableChartTargetCell = document.getElementById('table-chart-target-cell');
+  const tableChartColors = new Map();
+  const tableChartLabels = new Map();
+  let tableChartLegendTextColor = '#475569';
+
+  function getSelectedChartData(selectedCells = getToolbarSelection(), suppliedState = getTableState()) {
+    if (!selectedCells.length) return null;
+
+    const state = ensureTableData(suppliedState);
+    const selectedKeys = new Set(selectedCells.map(({ rowIndex, colIndex }) => `${rowIndex}|${colIndex}`));
+    const rowIndexes = [...new Set(selectedCells.map((cell) => cell.rowIndex))].sort((a, b) => a - b);
+    const colIndexes = [...new Set(selectedCells.map((cell) => cell.colIndex))].sort((a, b) => a - b);
+    const valueAt = (rowIndex, colIndex) => {
+      if (!selectedKeys.has(`${rowIndex}|${colIndex}`)) return null;
+      const value = state.data[rowIndex]?.[colIndex];
+      if (value === undefined || String(value).trim() === '') return null;
+      const number = typeof value === 'number' ? value : Number(String(value).trim().replace(',', '.'));
+      return Number.isFinite(number) ? number : null;
+    };
+    const colors = ['#43865b', '#e3a33b', '#33869b', '#d65e52', '#7771a8', '#a8bd4f', '#c66d9a'];
+    let labels;
+    let datasets;
+
+    if (colIndexes.length === 1) {
+      const colIndex = colIndexes[0];
+      labels = rowIndexes.map((rowIndex) => `Fila ${rowIndex + 1}`);
+      const values = rowIndexes.map((rowIndex) => valueAt(rowIndex, colIndex));
+      datasets = [{ label: state.columns[colIndex] || 'Valores', data: values, backgroundColor: colors[0], borderColor: colors[0] }];
+    } else if (rowIndexes.length === 1) {
+      const rowIndex = rowIndexes[0];
+      labels = colIndexes.map((colIndex) => state.columns[colIndex] || `Columna ${colIndex + 1}`);
+      datasets = [{ label: `Fila ${rowIndex + 1}`, data: colIndexes.map((colIndex) => valueAt(rowIndex, colIndex)), backgroundColor: colors, borderColor: colors[0] }];
+    } else {
+      const categoryCol = colIndexes[0];
+      labels = rowIndexes.map((rowIndex) => {
+        const category = selectedKeys.has(`${rowIndex}|${categoryCol}`) ? state.data[rowIndex]?.[categoryCol] : '';
+        return String(category || `Fila ${rowIndex + 1}`);
+      });
+      datasets = colIndexes.slice(1).map((colIndex, datasetIndex) => {
+        const data = rowIndexes.map((rowIndex) => valueAt(rowIndex, colIndex));
+        const color = colors[datasetIndex % colors.length];
+        return {
+          label: state.columns[colIndex] || `Columna ${colIndex + 1}`,
+          data,
+          backgroundColor: color,
+          borderColor: color
+        };
+      });
+    }
+
+    datasets = datasets.filter((dataset) => dataset.data.some((value) => value !== null));
+    return datasets.length ? { labels, datasets, selectedCount: selectedCells.length } : null;
+  }
+
+  function createChartPresentation(chartData, selectedType, colors = {}, labelsByKey = {}, legendTextColor = '#475569') {
+    const isCategoryChart = ['pie', 'doughnut', 'polarArea'].includes(selectedType);
+    const type = selectedType === 'horizontalBar' ? 'bar' : selectedType === 'area' ? 'line' : selectedType;
+    const labels = chartData.labels.map((label, index) => labelsByKey[`point:${index}`] || label);
+    let datasets = chartData.datasets.map((dataset, index) => {
+      const key = `series:${index}`;
+      const color = colors[key] || dataset.borderColor;
+      return {
+        ...dataset,
+        data: [...dataset.data],
+        label: labelsByKey[key] || dataset.label,
+        backgroundColor: color,
+        borderColor: color,
+        ...(selectedType === 'area' ? { fill: true } : {})
+      };
+    });
+
+    if (isCategoryChart) {
+      datasets = datasets.slice(0, 1);
+      datasets[0].backgroundColor = labels.map((label, index) => colors[`point:${index}`] || ['#43865b', '#e3a33b', '#33869b', '#d65e52', '#7771a8', '#a8bd4f', '#c66d9a'][index % 7]);
+      datasets[0].borderColor = datasets[0].backgroundColor;
+    }
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { color: legendTextColor } } }
+    };
+    if (!isCategoryChart) {
+      if (selectedType === 'radar' || selectedType === 'polarArea') options.scales = { r: { beginAtZero: true } };
+      else if (selectedType === 'horizontalBar') options.scales = { x: { beginAtZero: true } };
+      else options.scales = { y: { beginAtZero: true } };
+      if (selectedType === 'horizontalBar') options.indexAxis = 'y';
+    }
+    return { type, labels, datasets, options };
+  }
+
+  function renderTableChartLegendControls(chartData, type) {
+    if (!tableChartLegendControls) return;
+    tableChartLegendControls.replaceChildren();
+    const isCategoryChart = ['pie', 'doughnut', 'polarArea'].includes(type);
+    const items = isCategoryChart
+      ? chartData.labels.map((label, index) => ({ key: `point:${index}`, label }))
+      : chartData.datasets.map((dataset, index) => ({ key: `series:${index}`, label: dataset.label }));
+
+    items.forEach(({ key, label }, index) => {
+      const row = document.createElement('label');
+      row.className = 'table-chart-legend-item';
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = tableChartLabels.get(key) || label;
+      nameInput.setAttribute('aria-label', `Nombre de leyenda ${index + 1}`);
+      nameInput.addEventListener('change', () => {
+        tableChartLabels.set(key, nameInput.value.trim() || label);
+        renderTableChart();
+      });
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = tableChartColors.get(key) || ['#43865b', '#e3a33b', '#33869b', '#d65e52', '#7771a8', '#a8bd4f', '#c66d9a'][index % 7];
+      colorInput.setAttribute('aria-label', `Color de leyenda ${index + 1}`);
+      colorInput.addEventListener('input', () => tableChartColors.set(key, colorInput.value));
+      colorInput.addEventListener('change', renderTableChart);
+      row.append(nameInput, colorInput);
+      tableChartLegendControls.appendChild(row);
+    });
+  }
+
+  function renderTableChart() {
+    if (!tableChartCanvas || !tableChartMessage) return;
+    const chartData = getSelectedChartData();
+    const canvasWrap = tableChartCanvas.parentElement;
+    if (tableChart) {
+      tableChart.destroy();
+      tableChart = null;
+    }
+
+    if (!chartData) {
+      tableChartMessage.textContent = 'El rango seleccionado no contiene valores numéricos.';
+      if (canvasWrap) canvasWrap.hidden = true;
+      if (tableChartLegendControls) tableChartLegendControls.replaceChildren();
+      return;
+    }
+    if (typeof window.Chart !== 'function') {
+      tableChartMessage.textContent = 'No se pudo cargar la librería de gráficas.';
+      if (canvasWrap) canvasWrap.hidden = true;
+      return;
+    }
+
+    if (canvasWrap) canvasWrap.hidden = false;
+    tableChartMessage.textContent = `${chartData.selectedCount} celdas seleccionadas`;
+    const selectedType = tableChartType?.value || 'bar';
+    const presentation = createChartPresentation(
+      chartData,
+      selectedType,
+      Object.fromEntries(tableChartColors),
+      Object.fromEntries(tableChartLabels),
+      tableChartLegendTextColor
+    );
+    renderTableChartLegendControls(chartData, selectedType);
+    if (tableChartLegendColor) tableChartLegendColor.value = tableChartLegendTextColor;
+
+    tableChart = new window.Chart(tableChartCanvas, {
+      type: presentation.type,
+      data: { labels: presentation.labels, datasets: presentation.datasets },
+      options: presentation.options
+    });
+  }
+
+  function populateTableChartTargets() {
+    if (!tableChartTargetCell) return;
+    const state = ensureTableData(getTableState());
+    const selectedKeys = new Set(getToolbarSelection().map(({ rowIndex, colIndex }) => `${rowIndex}|${colIndex}`));
+    tableChartTargetCell.replaceChildren();
+    let defaultTarget = '';
+    state.columns.forEach((column, colIndex) => state.data.forEach((row, rowIndex) => {
+      const key = `${rowIndex}|${colIndex}`;
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = `${getCellReference(rowIndex, colIndex)}${column ? ` · ${column}` : ''}`;
+      tableChartTargetCell.appendChild(option);
+      if (!defaultTarget && !selectedKeys.has(key) && !state.charts[key]) defaultTarget = key;
+    }));
+    tableChartTargetCell.value = defaultTarget || tableChartTargetCell.options[0]?.value || '';
+  }
+
+  function renderLinkedTableChart(canvas, chartSpec, state) {
+    if (typeof window.Chart !== 'function') return;
+    const chartData = getSelectedChartData(chartSpec.sourceCells || [], state);
+    const chartWrap = canvas.parentElement;
+    let message = chartWrap.querySelector('.table-cell-chart-message');
+    if (!chartData) {
+      canvas.hidden = true;
+      if (!message) {
+        message = document.createElement('span');
+        message.className = 'table-cell-chart-message';
+        message.textContent = 'Agrega valores numericos en el rango vinculado.';
+        chartWrap.appendChild(message);
+      }
+      return;
+    }
+    canvas.hidden = false;
+    message?.remove();
+    const presentation = createChartPresentation(
+      chartData,
+      chartSpec.type || 'bar',
+      chartSpec.colors || {},
+      chartSpec.labels || {},
+      chartSpec.legendTextColor || '#475569'
+    );
+    new window.Chart(canvas, {
+      type: presentation.type,
+      data: { labels: presentation.labels, datasets: presentation.datasets },
+      options: presentation.options
+    });
+  }
+
+  function syncLinkedTableCharts(state) {
+    if (typeof window.Chart !== 'function') return;
+    document.querySelectorAll('.table-cell-chart-canvas').forEach((canvas) => {
+      const chartKey = canvas.dataset.chartCellKey;
+      const chartSpec = state.charts?.[chartKey];
+      const chart = window.Chart.getChart(canvas);
+      if (!chartSpec) return;
+      const chartData = getSelectedChartData(chartSpec.sourceCells || [], state);
+      if (!chartData) {
+        if (chart) {
+          chart.data.labels = [];
+          chart.data.datasets = [];
+          chart.update('none');
+        }
+        canvas.hidden = true;
+        if (!canvas.parentElement.querySelector('.table-cell-chart-message')) {
+          const message = document.createElement('span');
+          message.className = 'table-cell-chart-message';
+          message.textContent = 'Agrega valores numericos en el rango vinculado.';
+          canvas.parentElement.appendChild(message);
+        }
+        return;
+      }
+      if (!chart) {
+        renderLinkedTableChart(canvas, chartSpec, state);
+        return;
+      }
+      canvas.hidden = false;
+      canvas.parentElement.querySelector('.table-cell-chart-message')?.remove();
+      const presentation = createChartPresentation(
+        chartData,
+        chartSpec.type || 'bar',
+        chartSpec.colors || {},
+        chartSpec.labels || {},
+        chartSpec.legendTextColor || '#475569'
+      );
+      chart.data.labels = presentation.labels;
+      chart.data.datasets = presentation.datasets;
+      chart.options = presentation.options;
+      chart.update('none');
+    });
+  }
+
+  function openTableChart() {
+    if (!tableChartModal) return;
+    populateTableChartTargets();
+    tableChartModal.classList.add('open');
+    tableChartModal.setAttribute('aria-hidden', 'false');
+    renderTableChart();
+  }
+
+  function closeTableChart() {
+    if (!tableChartModal) return;
+    tableChartModal.classList.remove('open');
+    tableChartModal.setAttribute('aria-hidden', 'true');
+    if (tableChart) {
+      tableChart.destroy();
+      tableChart = null;
+    }
+  }
+
+  document.getElementById('btn-table-chart')?.addEventListener('click', () => {
+    if (!getToolbarSelection().length) {
+      showToast('Selecciona las celdas para crear una gráfica.');
+      return;
+    }
+    openTableChart();
+  });
+  document.getElementById('btn-close-table-chart')?.addEventListener('click', closeTableChart);
+  tableChartModal?.addEventListener('click', (event) => {
+    if (event.target === tableChartModal) closeTableChart();
+  });
+  tableChartType?.addEventListener('change', renderTableChart);
+  document.getElementById('btn-insert-table-chart')?.addEventListener('click', () => {
+    const sourceCells = getToolbarSelection();
+    const targetKey = tableChartTargetCell?.value;
+    if (!sourceCells.length || !targetKey || !getSelectedChartData()) {
+      showToast('Selecciona datos numéricos y una celda destino.');
+      return;
+    }
+    const state = ensureTableData(getTableState());
+    if (state.charts[targetKey] && !window.confirm('Esta celda ya tiene una gráfica. ¿Deseas reemplazarla?')) return;
+    state.charts[targetKey] = {
+      sourceCells: sourceCells.map((cell) => ({ ...cell })),
+      type: tableChartType?.value || 'bar',
+      colors: Object.fromEntries(tableChartColors),
+      labels: Object.fromEntries(tableChartLabels),
+      legendTextColor: tableChartLegendTextColor
+    };
+    state.cellSizes[targetKey] = { width: 360, height: 260 };
+    saveTableState(state);
+    const [rowIndex, colIndex] = targetKey.split('|').map(Number);
+    renderTableBuilder();
+    closeTableChart();
+    const targetCell = document.querySelector(`#dynamic-data-table td[data-row-index="${rowIndex}"][data-col-index="${colIndex}"]`);
+    targetCell?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    showToast(`Gráfica vinculada colocada en ${getCellReference(rowIndex, colIndex)}.`);
+  });
+  tableChartLegendColor?.addEventListener('input', () => {
+    tableChartLegendTextColor = tableChartLegendColor.value;
+    if (tableChart) {
+      tableChart.options.plugins.legend.labels.color = tableChartLegendTextColor;
+      tableChart.update();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && tableChartModal?.classList.contains('open')) closeTableChart();
+  });
+
+  let tableClipboard = null;
+  const tableClipboardButton = document.getElementById('btn-table-clipboard');
+  const tableClipboardMenu = document.getElementById('table-clipboard-menu');
+  if (tableClipboardMenu) document.body.appendChild(tableClipboardMenu);
+
+  function cloneClipboardValue(value) {
+    return value === undefined ? null : JSON.parse(JSON.stringify(value));
+  }
+
+  function captureTableClipboard() {
+    const selectedCells = getToolbarSelection();
+    if (!selectedCells.length) return null;
+    const state = ensureTableData(getTableState());
+    const rows = selectedCells.map((cell) => cell.rowIndex);
+    const cols = selectedCells.map((cell) => cell.colIndex);
+    const minRow = Math.min(...rows);
+    const maxRow = Math.max(...rows);
+    const minCol = Math.min(...cols);
+    const maxCol = Math.max(...cols);
+    const selectedKeys = new Set(selectedCells.map(({ rowIndex, colIndex }) => `${rowIndex}|${colIndex}`));
+    const matrix = [];
+
+    for (let rowIndex = minRow; rowIndex <= maxRow; rowIndex += 1) {
+      const row = [];
+      for (let colIndex = minCol; colIndex <= maxCol; colIndex += 1) {
+        const key = `${rowIndex}|${colIndex}`;
+        row.push(selectedKeys.has(key) ? {
+          value: state.data[rowIndex]?.[colIndex] ?? '',
+          formula: cloneClipboardValue(state.formulas[key]),
+          image: cloneClipboardValue(state.images[key]),
+          chart: cloneClipboardValue(state.charts?.[key]),
+          cellType: cloneClipboardValue(state.cellTypes[key]),
+          cellStyle: cloneClipboardValue(state.cellStyles?.[key])
+        } : null);
+      }
+      matrix.push(row);
+    }
+    tableClipboard = { matrix, selectedCells: selectedCells.map((cell) => ({ ...cell })) };
+    return tableClipboard;
+  }
+
+  function restoreTableSelection(cells) {
+    if (!cells.length) return;
+    tableSelection = { ...cells[0], cells };
+    document.querySelectorAll('.table-selected-cell').forEach((cell) => cell.classList.remove('table-selected-cell'));
+    cells.forEach(({ rowIndex, colIndex }) => {
+      document.querySelector(`#dynamic-data-table td[data-row-index="${rowIndex}"][data-col-index="${colIndex}"]`)?.classList.add('table-selected-cell');
+    });
+  }
+
+  function performTableClipboardAction(action) {
+    const selection = getToolbarSelection();
+    if (action === 'copy' || action === 'cut') {
+      const clipboard = captureTableClipboard();
+      if (!clipboard) {
+        showToast('Selecciona las celdas primero.');
+        return;
+      }
+      if (action === 'cut') {
+        const state = ensureTableData(getTableState());
+        selection.forEach(({ rowIndex, colIndex }) => {
+          const key = `${rowIndex}|${colIndex}`;
+          state.data[rowIndex][colIndex] = '';
+          delete state.formulas[key];
+          delete state.images[key];
+          delete state.charts[key];
+          delete state.cellTypes[key];
+          if (state.cellStyles) delete state.cellStyles[key];
+        });
+        saveTableState(state);
+        renderTableBuilder();
+        restoreTableSelection(selection);
+      }
+      showToast(action === 'copy' ? 'Celdas copiadas.' : 'Celdas cortadas.');
+      return;
+    }
+
+    if (action !== 'paste') return;
+    if (!tableClipboard) {
+      showToast('No hay celdas copiadas.');
+      return;
+    }
+    const target = selection[0] || (tableSelection?.rowIndex !== undefined && tableSelection?.colIndex !== null ? tableSelection : null);
+    if (!target || target.colIndex === null || target.colIndex === undefined) {
+      showToast('Selecciona la celda donde quieres pegar.');
+      return;
+    }
+
+    const state = ensureTableData(getTableState());
+    const pastedCells = [];
+    const isSingleCellClipboard = tableClipboard.matrix.length === 1 && tableClipboard.matrix[0].length === 1;
+    const pasteOperations = isSingleCellClipboard && selection.length > 1
+      ? selection.map((cell) => ({ ...cell, item: tableClipboard.matrix[0][0] }))
+      : tableClipboard.matrix.flatMap((row, rowOffset) => row.map((item, colOffset) => ({
+        rowIndex: target.rowIndex + rowOffset,
+        colIndex: target.colIndex + colOffset,
+        item
+      })));
+
+    pasteOperations.forEach(({ rowIndex, colIndex, item }) => {
+      if (!item || !state.data[rowIndex] || colIndex >= state.columns.length) return;
+      const key = `${rowIndex}|${colIndex}`;
+      state.data[rowIndex][colIndex] = item.value;
+      if (item.formula) state.formulas[key] = item.formula;
+      else delete state.formulas[key];
+      if (item.image) state.images[key] = cloneClipboardValue(item.image);
+      else delete state.images[key];
+      state.charts = state.charts || {};
+      if (item.chart) {
+        state.charts[key] = cloneClipboardValue(item.chart);
+        state.cellSizes[key] = { width: 360, height: 260 };
+      } else delete state.charts[key];
+      if (item.cellType) state.cellTypes[key] = item.cellType;
+      else delete state.cellTypes[key];
+      state.cellStyles = state.cellStyles || {};
+      if (item.cellStyle) state.cellStyles[key] = item.cellStyle;
+      else delete state.cellStyles[key];
+      pastedCells.push({ rowIndex, colIndex });
+    });
+    if (!pastedCells.length) {
+      showToast('No hay celdas disponibles para pegar en esa posición.');
+      return;
+    }
+    recalculateFormulas(state);
+    saveTableState(state);
+    renderTableBuilder();
+    restoreTableSelection(pastedCells);
+    showToast('Celdas pegadas.');
+  }
+
+  tableClipboardButton?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (!tableClipboardMenu) return;
+    const open = tableClipboardMenu.hidden;
+    tableClipboardMenu.hidden = !open;
+    tableClipboardButton.setAttribute('aria-expanded', String(open));
+    if (open) {
+      const buttonRect = tableClipboardButton.getBoundingClientRect();
+      const menuRect = tableClipboardMenu.getBoundingClientRect();
+      const left = Math.max(8, Math.min(buttonRect.right - menuRect.width, window.innerWidth - menuRect.width - 8));
+      tableClipboardMenu.style.left = `${left}px`;
+      tableClipboardMenu.style.top = `${Math.max(8, buttonRect.top - menuRect.height - 8)}px`;
+    }
+  });
+  tableClipboardMenu?.addEventListener('click', (event) => {
+    const actionButton = event.target.closest('[data-clipboard-action]');
+    if (!actionButton) return;
+    performTableClipboardAction(actionButton.dataset.clipboardAction);
+    tableClipboardMenu.hidden = true;
+    tableClipboardButton?.setAttribute('aria-expanded', 'false');
+  });
+  document.addEventListener('click', (event) => {
+    if (tableClipboardMenu && !event.target.closest('.table-clipboard-control')) {
+      tableClipboardMenu.hidden = true;
+      tableClipboardButton?.setAttribute('aria-expanded', 'false');
+    }
+  });
+
   function clearSelectedTableCells() {
     const selectedCells = getToolbarSelection();
     if (!selectedCells.length) return false;
     const state = ensureTableData(getTableState());
     state.images = state.images || {};
+    state.charts = state.charts || {};
     state.formulas = state.formulas || {};
     selectedCells.forEach(({ rowIndex, colIndex }) => {
       if (!state.data[rowIndex] || colIndex < 0 || colIndex >= state.columns.length) return;
       state.data[rowIndex][colIndex] = '';
       delete state.formulas[`${rowIndex}|${colIndex}`];
       delete state.images[`${rowIndex}|${colIndex}`];
+      delete state.charts[`${rowIndex}|${colIndex}`];
     });
     saveTableState(state);
     renderTableBuilder();
@@ -1510,6 +2102,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const editingInput = event.target instanceof HTMLInputElement && !event.target.readOnly;
+    if (!editingInput && (event.ctrlKey || event.metaKey) && ['c', 'x', 'v'].includes(event.key.toLowerCase())) {
+      event.preventDefault();
+      performTableClipboardAction(({ c: 'copy', x: 'cut', v: 'paste' })[event.key.toLowerCase()]);
+      return;
+    }
     if (!editingInput && (event.key === 'Delete' || event.key === 'Backspace') && getToolbarSelection().length) {
       event.preventDefault();
       clearSelectedTableCells();
@@ -1678,6 +2275,78 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTableBuilder();
   });
 
+  const tableBusinessTemplates = {
+    sales: {
+      title: 'EMPRESA - VENTAS Y FACTURACION',
+      columns: ['Mes', 'Ventas', 'Meta', 'Gastos', 'Unidades'],
+      data: [
+        ['Enero', '18400', '20000', '9200', '142'], ['Febrero', '21200', '20500', '10100', '158'],
+        ['Marzo', '23800', '22000', '11200', '177'], ['Abril', '20600', '22500', '9800', '151'],
+        ['Mayo', '25400', '23000', '11900', '189'], ['Junio', '27100', '24500', '12600', '204'],
+        ['Julio', '26300', '25000', '12100', '198'], ['Agosto', '28900', '26000', '13400', '218'],
+        ['Septiembre', '27600', '26500', '12900', '207'], ['Octubre', '31200', '28000', '14500', '236'],
+        ['Noviembre', '33800', '30000', '15700', '251'], ['Diciembre', '38600', '34000', '18100', '289']
+      ]
+    },
+    finance: {
+      title: 'EMPRESA - PRESUPUESTO Y GASTOS',
+      columns: ['Area', 'Presupuesto', 'Ejecutado', 'Saldo', 'Proveedores'],
+      data: [
+        ['Operaciones', '85000', '63400', '21600', '12'], ['Administracion', '42000', '31800', '10200', '8'],
+        ['Tecnologia', '56000', '49200', '6800', '6'], ['Ventas', '38000', '27100', '10900', '9'],
+        ['Logistica', '67000', '52100', '14900', '11'], ['Recursos humanos', '29000', '21800', '7200', '4'],
+        ['Marketing', '44000', '39600', '4400', '7'], ['Mantenimiento', '31500', '22400', '9100', '5']
+      ]
+    },
+    staff: {
+      title: 'EMPRESA - PERSONAL Y NOMINA',
+      columns: ['Departamento', 'Empleados', 'Vacantes', 'Ausencias', 'Nomina mensual'],
+      data: [
+        ['Direccion', '8', '1', '0', '18400'], ['Operaciones', '42', '5', '3', '67200'],
+        ['Ventas', '26', '4', '2', '46800'], ['Administracion', '18', '2', '1', '31500'],
+        ['Tecnologia', '14', '3', '1', '33600'], ['Logistica', '31', '6', '4', '44950'],
+        ['Atencion al cliente', '22', '3', '2', '30800'], ['Recursos humanos', '9', '1', '0', '19350']
+      ]
+    }
+  };
+
+  function loadBusinessExcelTemplate(templateKey) {
+    const template = tableBusinessTemplates[templateKey];
+    if (!template) return false;
+    const currentState = ensureTableData(getTableState());
+    const hasExistingData = currentState.data.some((row) => row.some((value) => String(value ?? '').trim() !== ''));
+    if (hasExistingData && !window.confirm('La plantilla reemplazara los datos actuales de la tabla. ¿Deseas continuar?')) return false;
+    const columnCount = template.columns.length;
+    const rowCount = Math.max(20, template.data.length);
+    const state = {
+      title: template.title,
+      columns: [...template.columns],
+      rows: rowCount,
+      data: Array.from({ length: rowCount }, (_, rowIndex) => [...(template.data[rowIndex] || Array(columnCount).fill(''))]),
+      columnTypes: Array(columnCount).fill('general'),
+      cellTypes: {},
+      cellSizes: {},
+      cellStyles: {},
+      images: {},
+      charts: {},
+      formulas: {},
+      merges: []
+    };
+    saveTableState(state);
+    showToast('Plantilla empresarial cargada.');
+    return true;
+  }
+
+  document.querySelectorAll('.btn-use-table-template').forEach((button) => {
+    button.addEventListener('click', () => {
+      const templateKey = button.dataset.tableTemplate;
+      if (!loadBusinessExcelTemplate(templateKey)) return;
+      modalDocumentTemplates?.classList.remove('open');
+      modalTemplates?.classList.remove('open');
+      showTableBuilder();
+    });
+  });
+
   const resetTableModal = document.getElementById('reset-table-modal');
 
   function showResetTableModal() {
@@ -1746,12 +2415,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="font-weight:bold; font-size:18px; padding: 10px 0 8px; color: #1b2d12;">${title}</div>
         <table>
           <tr>
-            <th style="width: 55px; height: 30px; border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">#</th>
-            ${state.columns.map((cell, colIndex) => `<th style="width: 140px; height: 30px; border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">${escapeExcelValue(colIndex === state.columns.length - 1 ? '...' : String(cell).trim() || getColumnLabel(colIndex))}</th>`).join('')}
+            ${state.columns.map((cell, colIndex) => `<th style="width: 140px; height: 30px; border: 1px solid #6d7d5b; background: #bfe68d; padding: 8px 10px;">${escapeExcelValue(String(cell).trim() || `Columna ${getColumnLabel(colIndex)}`)}</th>`).join('')}
           </tr>
           ${state.data.map((row, rowIndex) => `
             <tr>
-              <td style="width: 55px; height: 30px; border: 1px solid #6d7d5b; background: #edf9d5; padding: 8px 10px;">${String(rowIndex).padStart(2, '0')}</td>
               ${row.map((cell, colIndex) => {
                 const key = `${rowIndex}|${colIndex}`;
                 const background = state.cellStyles && state.cellStyles[key] ? state.cellStyles[key] : '#edf9d5';
@@ -1777,9 +2444,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = ensureTableData(JSON.parse(JSON.stringify(stateToExport)));
     const safeName = (state.title || 'table_date').trim().replace(/[^a-zA-Z0-9_-]+/g, '_').toLowerCase() || 'table_date';
     const escapeValue = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') || '&nbsp;';
-    const headers = state.columns.map((column, index) => escapeValue(index === state.columns.length - 1 ? '...' : String(column).trim() || getColumnLabel(index))).join('');
-    const rows = state.data.map((row, rowIndex) => `<tr><td>${String(rowIndex).padStart(2, '0')}</td>${row.map((value) => `<td>${escapeValue(value)}</td>`).join('')}</tr>`).join('');
-    const html = `<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse}th,td{border:1px solid #6d7d5b;padding:8px 10px;min-width:140px}th{background:#bfe68d}td{background:#edf9d5}</style></head><body><h2>${escapeValue(state.title || 'TABLE DATE')}</h2><table><tr><th>#</th>${headers}</tr>${rows}</table></body></html>`;
+    const headers = state.columns.map((column, index) => `<th>${escapeValue(String(column).trim() || `Columna ${getColumnLabel(index)}`)}</th>`).join('');
+    const rows = state.data.map((row) => `<tr>${row.map((value) => `<td>${escapeValue(value)}</td>`).join('')}</tr>`).join('');
+    const html = `<html><head><meta charset="utf-8"><style>body{font-family:Arial}table{border-collapse:collapse}th,td{border:1px solid #6d7d5b;padding:8px 10px;min-width:140px}th{background:#bfe68d}td{background:#edf9d5}</style></head><body><h2>${escapeValue(state.title || 'TABLE DATE')}</h2><table><tr>${headers}</tr>${rows}</table></body></html>`;
     return new File([html], `${safeName}.xls`, { type: 'application/vnd.ms-excel' });
   }
 
