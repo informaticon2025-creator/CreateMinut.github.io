@@ -349,26 +349,109 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const btnShareAppLink = document.getElementById('btn-share-app-link');
+  const modalSocialShare = document.getElementById('modal-social-share');
+  const btnCloseSocialShare = document.getElementById('btn-close-social-share');
+  const btnCopyShareLink = document.getElementById('btn-copy-share-link');
+  const sharePageUrl = new URL('index.html', window.location.href).href;
+
+  function closeSocialShareModal() {
+    if (!modalSocialShare) return;
+    modalSocialShare.classList.remove('open');
+    modalSocialShare.setAttribute('aria-hidden', 'true');
+  }
+
+  async function copySharePageUrl() {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(sharePageUrl);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = sharePageUrl;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        const copied = document.execCommand('copy');
+        helper.remove();
+        if (!copied) throw new Error('El navegador no pudo copiar el enlace.');
+      }
+      showToast('Enlace copiado al portapapeles');
+    } catch (error) {
+      console.error('No se pudo copiar el enlace para compartir:', error);
+      showToast('No se pudo copiar el enlace');
+    }
+  }
+
   if (btnShareAppLink) {
-    btnShareAppLink.addEventListener('click', async (e) => {
-      e.preventDefault(); toggleMenu();
-      const currentUrl = window.location.href;
-      if (navigator.share) {
+    btnShareAppLink.addEventListener('click', async (event) => {
+      event.preventDefault();
+      toggleMenu();
+      if (modalSocialShare) {
+        modalSocialShare.classList.add('open');
+        modalSocialShare.setAttribute('aria-hidden', 'false');
+        btnCloseSocialShare?.focus();
+      } else if (navigator.share) {
         try {
-          await navigator.share({ title: 'CreatorMinut', text: `Accede a CreatorMinut:\n${currentUrl}` });
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(currentUrl);
-            }
-            alert('Enlace copiado al portapapeles.');
-          }
+          await navigator.share({ title: 'CreatorMinut', url: sharePageUrl });
+        } catch (error) {
+          if (error.name !== 'AbortError') await copySharePageUrl();
         }
-      } else if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(currentUrl);
-        alert('Enlace copiado al portapapeles.');
+      } else {
+        await copySharePageUrl();
       }
     });
+  }
+
+  if (modalSocialShare) {
+    modalSocialShare.addEventListener('click', (event) => {
+      if (event.target === modalSocialShare) closeSocialShareModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modalSocialShare.classList.contains('open')) {
+        closeSocialShareModal();
+      }
+    });
+    modalSocialShare.querySelectorAll('[data-share-platform]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const platform = button.dataset.sharePlatform;
+        const encodedUrl = encodeURIComponent(sharePageUrl);
+        const shareUrls = {
+          facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+          telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent('Conoce CreatorMinut, la herramienta para crear minutas y reportes profesionales.')}`
+        };
+
+        if (shareUrls[platform]) {
+          window.open(shareUrls[platform], '_blank', 'noopener,noreferrer');
+          closeSocialShareModal();
+          return;
+        }
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'CreatorMinut',
+              text: `Comparte CreatorMinut en ${button.title}`,
+              url: sharePageUrl
+            });
+            closeSocialShareModal();
+          } catch (error) {
+            if (error.name !== 'AbortError') {
+              console.error(`No se pudo abrir el menú para compartir en ${button.title}:`, error);
+              await copySharePageUrl();
+            }
+          }
+        } else {
+          await copySharePageUrl();
+        }
+      });
+    });
+  }
+
+  if (btnCloseSocialShare) {
+    btnCloseSocialShare.addEventListener('click', closeSocialShareModal);
+  }
+  if (btnCopyShareLink) {
+    btnCopyShareLink.addEventListener('click', copySharePageUrl);
   }
 
   // --- FORMULARIO Y CAMPOS DINÁMICOS EXTRAS ---
@@ -2577,6 +2660,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalPreview = document.getElementById('modal-preview');
   const btnCloseModal = document.getElementById('btn-close-modal');
   const minutaOutput = document.getElementById('minuta-output');
+  const formatoLiveOutput = document.getElementById('formato-live-output');
+  const formatoForm = document.getElementById('formato-form');
 
   function setDefaultDateTime() {
     const now = new Date();
@@ -2623,9 +2708,13 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(row);
     container.scrollTop = container.scrollHeight;
     refreshIcons();
+    if (container === dynamicFormatoFieldsContainer) renderFormato();
 
     // Eliminar
-    row.querySelector('.btn-remove-field').addEventListener('click', () => row.remove());
+    row.querySelector('.btn-remove-field').addEventListener('click', () => {
+      row.remove();
+      if (container === dynamicFormatoFieldsContainer) renderFormato();
+    });
 
     // Botón alternar candado/mover
     const btnToggle = row.querySelector('.btn-toggle-drag');
@@ -2849,6 +2938,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (titleInput) titleInput.value = label;
       if (valueInput) valueInput.value = value;
     });
+    renderFormato();
   }
 
   document.querySelectorAll('.btn-use-document-template').forEach((button) => {
@@ -2975,7 +3065,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!dynamicFormatoFieldsContainer) {
-      minutaOutput.innerText = formatoText;
+      if (minutaOutput) minutaOutput.innerText = formatoText;
+      if (formatoLiveOutput) formatoLiveOutput.innerText = formatoText;
       return;
     }
 
@@ -3012,8 +3103,17 @@ document.addEventListener('DOMContentLoaded', () => {
       formatoText += `\n${fmtTituloInferior.value.trim().toUpperCase()}`;
     }
 
-    minutaOutput.innerText = formatoText;
+    if (minutaOutput) minutaOutput.innerText = formatoText;
+    if (formatoLiveOutput) {
+      formatoLiveOutput.innerText = formatoText || 'Tu minuta aparecerá aquí al completar los campos.';
+    }
   }
+
+  if (formatoForm) {
+    formatoForm.addEventListener('input', renderFormato);
+    formatoForm.addEventListener('change', renderFormato);
+  }
+  renderFormato();
 
   async function guardarMinutaLocal(datosMinuta) {
     const key = 'creatorMinut_local_minutas';
